@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="KursachLao-ServerSide/KursachLao-ServerSide.vcxproj" />
+  <Project Path="KursachLao-ServerSide/KursachLao-ServerSide.vcxproj" Id="8f1db500-dd40-4d85-9fa2-98581def69fc" />
 </Solution>

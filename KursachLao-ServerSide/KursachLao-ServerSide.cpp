@@ -1,20 +1,34 @@
-﻿// KursachLao-ServerSide.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
-//
-
+﻿#include "SessionHeandler.h"
+#include <boost/asio/ip/tcp.hpp>
 #include <iostream>
+#include <thread>
+
+namespace net = boost::asio;
+using tcp = boost::asio::ip::tcp;
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    try
+    {
+        auto const address = net::ip::make_address("0.0.0.0");
+        auto const port = static_cast<unsigned short>(8080);
+
+        net::io_context ioc{ 1 };
+        tcp::acceptor acceptor{ ioc, {address, port} };
+
+        std::cout << "Server running on http://0.0.0.0:8080" << std::endl;
+        std::cout << "Open http://localhost:8080 in your browser to see 'Hello World!'" << std::endl;
+
+        for (;;)
+        {
+            tcp::socket socket{ ioc };
+            acceptor.accept(socket);
+            std::thread{ std::bind(&SessionHandler::do_session, std::move(socket)) }.detach();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
 }
-
-// Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
-// Отладка программы: F5 или меню "Отладка" > "Запустить отладку"
-
-// Советы по началу работы 
-//   1. В окне обозревателя решений можно добавлять файлы и управлять ими.
-//   2. В окне Team Explorer можно подключиться к системе управления версиями.
-//   3. В окне "Выходные данные" можно просматривать выходные данные сборки и другие сообщения.
-//   4. В окне "Список ошибок" можно просматривать ошибки.
-//   5. Последовательно выберите пункты меню "Проект" > "Добавить новый элемент", чтобы создать файлы кода, или "Проект" > "Добавить существующий элемент", чтобы добавить в проект существующие файлы кода.
-//   6. Чтобы снова открыть этот проект позже, выберите пункты меню "Файл" > "Открыть" > "Проект" и выберите SLN-файл.
