@@ -1,9 +1,11 @@
-#pragma once
+#ifndef SESSIONHANDLER_H
+#define SESSIONHANDLER_H
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/thread.hpp>
 #include <memory>
 
 namespace beast = boost::beast;
@@ -37,3 +39,4 @@ private:
     static void handle_request(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send);
 };
 
+#endif // SESSIONHANDLER_H

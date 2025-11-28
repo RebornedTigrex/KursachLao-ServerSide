@@ -128,10 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="KursachLao-ServerSide.cpp" />
-    <ClCompile Include="SessionHeandler.cpp" />
+    <ClCompile Include="SessionHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SessionHeandler.h" />
+    <ClInclude Include="BaseModule.h" />
+    <ClInclude Include="ModuleRegistry.h" />
+    <ClInclude Include="IModule.h" />
+    <ClInclude Include="SessionHandler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

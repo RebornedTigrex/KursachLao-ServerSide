@@ -1,7 +1,5 @@
-#include "SessionHeandler.h"
-
+#include "SessionHandler.h"
 #include <iostream>
-#include <thread>
 
 // Реализация метода отправки сообщений
 template<class Stream>
@@ -39,30 +37,35 @@ template void SessionHandler::handle_request<
         http::request<http::string_body, http::basic_fields<std::allocator<char>>>&&,
         SessionHandler::send_lambda<tcp::socket>&&);
 
-template class SessionHandler::send_lambda<tcp::socket>;
-
 // Реализация обработки сессии
 void SessionHandler::do_session(tcp::socket socket)
 {
-    bool close = false;
-    beast::error_code ec;
-    beast::flat_buffer buffer;
-
-    send_lambda<tcp::socket> lambda{ socket, close, ec };
-
-    for (;;)
+    try
     {
-        // Читаем запрос
-        http::request<http::string_body> req;
-        http::read(socket, buffer, req, ec);
-        if (ec == http::error::end_of_stream) break;
-        if (ec) return;
+        bool close = false;
+        beast::error_code ec;
+        beast::flat_buffer buffer;
 
-        // Отправляем ответ "Hello World!"
-        handle_request(std::move(req), lambda);
-        if (ec) return;
-        if (close) break;
+        send_lambda<tcp::socket> lambda{ socket, close, ec };
+
+        for (;;)
+        {
+            // Читаем запрос
+            http::request<http::string_body> req;
+            http::read(socket, buffer, req, ec);
+            if (ec == http::error::end_of_stream) break;
+            if (ec) return;
+
+            // Отправляем ответ "Hello World!"
+            handle_request(std::move(req), lambda);
+            if (ec) return;
+            if (close) break;
+        }
+
+        socket.shutdown(tcp::socket::shutdown_send, ec);
     }
-
-    socket.shutdown(tcp::socket::shutdown_send, ec);
+    catch (const std::exception& e)
+    {
+        std::cerr << "Session error: " << e.what() << std::endl;
+    }
 }

@@ -18,12 +18,21 @@
     <ClCompile Include="KursachLao-ServerSide.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="SessionHeandler.cpp">
+    <ClCompile Include="SessionHandler.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SessionHeandler.h">
+    <ClInclude Include="SessionHandler.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="IModule.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseModule.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleRegistry.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,0 +1,20 @@
+#pragma once
+
+#include <string>
+
+class IModule {
+public:
+    virtual ~IModule() = default;
+
+    virtual std::string getId() const = 0;
+    virtual std::string getName() const = 0;
+    virtual std::string getVersion() const = 0;
+
+    // Жизненный цикл
+    virtual bool initialize() = 0;
+    virtual void shutdown() = 0;
+
+    // Статус
+    virtual bool isEnabled() const = 0;
+    virtual void setEnabled(bool enabled) = 0;
+};
