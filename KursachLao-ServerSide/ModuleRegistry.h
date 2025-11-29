@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <iostream>
+#include <mutex>
 
 /*
 # ModuleManager
@@ -14,16 +15,27 @@
 
 class ModuleRegistry{
 private:
-    std::unordered_map<std::string, std::unique_ptr<IModule>> modules_;
+    std::unordered_map<int, std::unique_ptr<IModule>> modules_;
+    int nextId_ = 1;
+    std::mutex mutex_;
+
+    int generateId() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return nextId_++;
+    }
 
 public:
     template<typename T, typename... Args>
     T* registerModule(Args&&... args) {
         auto module = std::make_unique<T>(std::forward<Args>(args)...);
-        std::string id = module->getId();
+        int id = generateId();
 
+        // Устанавливаем id в модуль
+        module->setId(id);
+
+        // Проверяем, не существует ли уже модуль с таким id
         if (modules_.find(id) != modules_.end()) {
-            throw std::runtime_error("Module with id '" + id + "' already registered");
+            throw std::runtime_error("Internal error: generated duplicate id " + std::to_string(id));
         }
 
         T* ptr = module.get();
@@ -31,17 +43,18 @@ public:
         return ptr;
     }
 
-    IModule* getModule(const std::string& id) {
+    IModule* getModule(const int& id) {
         auto it = modules_.find(id);
         return it != modules_.end() ? it->second.get() : nullptr;
     }
 
     template<typename T>
-    T* getModuleAs(const std::string& id) {
+    T* getModuleAs(const int& id) {
         return dynamic_cast<T*>(getModule(id));
     }
 
     bool initializeAll() {
+        std::lock_guard<std::mutex> lock(mutex_);
         bool all_ok = true;
         for (auto& [id, module] : modules_) {
             if (module->isEnabled()) {
@@ -55,6 +68,7 @@ public:
     }
 
     void shutdownAll() {
+        std::lock_guard<std::mutex> lock(mutex_);
         for (auto& [id, module] : modules_) {
             if (module->isEnabled()) {
                 module->shutdown();
@@ -62,11 +76,19 @@ public:
         }
     }
 
-    std::vector<std::string> getModuleIds() const {
-        std::vector<std::string> ids;
+    std::vector<int> getModuleIds() const {
+        std::vector<int> ids;
         for (const auto& [id, module] : modules_) {
             ids.push_back(id);
         }
         return ids;
+    }
+
+    size_t size() const {
+        return modules_.size();
+    }
+
+    bool empty() const {
+        return modules_.empty();
     }
 };

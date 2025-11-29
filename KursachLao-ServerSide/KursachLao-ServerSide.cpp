@@ -1,48 +1,52 @@
-﻿#include "SessionHandler.h"
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/thread.hpp>
-#include <boost/make_shared.hpp>
+﻿#include "ModuleRegistry.h"
+#include "RequestHandler.h"
 #include <iostream>
-#include <memory>
+#include <csignal>
+#include <thread>
 
-namespace net = boost::asio;
-using tcp = boost::asio::ip::tcp;
+std::atomic<bool> running{ true };
 
-int main()
-{
-    try
-    {
-        auto const address = net::ip::make_address("0.0.0.0");
-        auto const port = static_cast<unsigned short>(8080);
+void signalHandler(int signal) {
+    std::cout << "Received signal " << signal << ", shutting down..." << std::endl;
+    running.store(false);
+}
 
-        net::io_context ioc{ 1 };
-        tcp::acceptor acceptor{ ioc, {address, port} };
+int main() {
+    // Устанавливаем обработчики сигналов
+    std::signal(SIGINT, signalHandler);
+    std::signal(SIGTERM, signalHandler);
 
-        std::cout << "Server running on http://0.0.0.0:8080" << std::endl;
-        std::cout << "Open http://localhost:8080 in your browser to see 'Hello World!'" << std::endl;
+    try {
+        ModuleRegistry registry;
 
-        boost::thread_group thread_group;
+        // Регистрируем HTTP-модуль на порту 8080
+        auto* httpModule = registry.registerModule<RequestHandler>();
 
-        for (;;)
-        {
-            // Создаем shared_ptr для socket
-            auto socket = boost::make_shared<tcp::socket>(ioc);
-            acceptor.accept(*socket);
-
-            // Создаем поток с помощью Boost.Thread, используя shared_ptr
-            thread_group.create_thread([socket]() {
-                try {
-                    SessionHandler::do_session(std::move(*socket));
-                }
-                catch (const std::exception& e) {
-                    std::cerr << "Thread error: " << e.what() << std::endl;
-                }
-                });
+        // Инициализируем все модули
+        if (!registry.initializeAll()) {
+            std::cerr << "Failed to initialize all modules" << std::endl;
+            return EXIT_FAILURE;
         }
+
+        std::cout << "All modules initialized successfully" << std::endl;
+        std::cout << "Server running on http://localhost:8080" << std::endl;
+        std::cout << "Press Ctrl+C to exit" << std::endl;
+
+        // Главный цикл
+        while (running.load()) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
+        // Корректное завершение
+        std::cout << "Shutting down modules..." << std::endl;
+        registry.shutdownAll();
+
+        std::cout << "Application terminated successfully" << std::endl;
+        return EXIT_SUCCESS;
+
     }
-    catch (const std::exception& e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
+    catch (const std::exception& e) {
+        std::cerr << "Fatal error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 }

@@ -6,9 +6,9 @@ class IModule {
 public:
     virtual ~IModule() = default;
 
-    virtual std::string getId() const = 0;
+    virtual int getId() const = 0;
     virtual std::string getName() const = 0;
-    virtual std::string getVersion() const = 0;
+    //virtual std::string getVersion() const = 0;
 
     // Жизненный цикл
     virtual bool initialize() = 0;
