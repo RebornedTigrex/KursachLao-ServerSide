@@ -35,9 +35,12 @@ void SessionHandler::handle_request(
 template void SessionHandler::handle_request<
     http::string_body,
     std::allocator<char>,
-    SessionHandler::send_lambda<tcp::socket>>(
+    SessionHandler::send_lambda<tcp::socket>
+>
+    (
         http::request<http::string_body, http::basic_fields<std::allocator<char>>>&&,
-        SessionHandler::send_lambda<tcp::socket>&&);
+        SessionHandler::send_lambda<tcp::socket>&&
+    );
 
 template class SessionHandler::send_lambda<tcp::socket>;
 

@@ -16,7 +16,6 @@ public:
     // Обработка HTTP сессии
     static void do_session(tcp::socket socket);
 
-private:
     // Лямбда для отправки сообщений
     template<class Stream>
     struct send_lambda {
@@ -31,9 +30,11 @@ private:
         template<bool isRequest, class Body, class Fields>
         void operator()(http::message<isRequest, Body, Fields>&& msg) const;
     };
+    
 
     // Обработчик HTTP запроса - всегда возвращает "Hello World!"
     template<class Body, class Allocator, class Send>
     static void handle_request(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send);
 };
+
 

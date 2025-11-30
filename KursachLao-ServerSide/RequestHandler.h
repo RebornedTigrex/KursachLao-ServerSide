@@ -14,7 +14,7 @@ public:
 
     template<class Body, class Allocator, class Send>
     void handleRequest(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
-        // Реализация ПРЯМО ЗДЕСЬ в заголовочном файле
+
         http::response<http::string_body> res{ http::status::not_found, req.version() };
         res.set(http::field::server, "ModularServer");
         res.keep_alive(req.keep_alive());

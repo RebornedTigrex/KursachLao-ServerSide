@@ -1,121 +1,82 @@
-﻿#include "ModuleRegistry.h"
+﻿#include "SessionHandler.h"
 #include "RequestHandler.h"
+#include "ModuleRegistry.h"
 
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/strand.hpp>
+#include <boost/thread.hpp>
+#include <boost/make_shared.hpp>
 #include <iostream>
-#include <csignal>
+#include <memory>
 
-
-namespace beast = boost::beast;
-namespace http = beast::http;
 namespace net = boost::asio;
-using tcp = net::ip::tcp;
+using tcp = boost::asio::ip::tcp;
 
-// Класс для обработки соединения
-class Session : public std::enable_shared_from_this<Session> {
-    tcp::socket socket_;
-    beast::flat_buffer buffer_;
-    http::request<http::string_body> req_;
-    RequestHandler& handler_;  // Ссылка на ваш модуль
+int main()
+{
+    ModuleRegistry registry;
 
-public:
-    explicit Session(tcp::socket socket, RequestHandler& handler)
-        : socket_(std::move(socket)), handler_(handler) {
-    }
+    auto* requestModule = registry.registerModule<RequestHandler>();
 
-    void run() {
-        do_read();
-    }
+    registry.initializeAll();
 
-private:
-    void do_read() {
-        http::async_read(socket_, buffer_, req_,
-            [self = shared_from_this()](beast::error_code ec, std::size_t) {
-                if (!ec)
-                    self->do_write();
-                else
-                    std::cerr << "Read error: " << ec.message() << std::endl;
-            });
-    }
+    try
+    {
+        bool close = false;
+        beast::error_code ec;
+        beast::flat_buffer buffer;
 
-    void do_write() {
-        // Создаём лямбду для отправки ответа (аналог `send`)
-        auto send = [self = shared_from_this()](http::response<http::string_body> res) {
-            http::async_write(self->socket_, std::move(res),
-                [self](beast::error_code ec, std::size_t bytes_transferred) {
-                    if (!ec) {
-                        self->socket_.shutdown(tcp::socket::shutdown_send, ec);
-                    }
-                    else {
-                        std::cerr << "Write error: " << ec.message() << std::endl;
-                    }
-                });
-            };
+        auto const address = net::ip::make_address("0.0.0.0");
+        auto const port = static_cast<unsigned short>(8080);
 
-        // Передаём запрос и `send`-лямбду в ваш модуль
-        handler_.handleRequest(std::move(req_), send);
-    }
-};
+        net::io_context ioc{ 1 };
+        tcp::acceptor acceptor{ ioc, {address, port} };
 
-std::atomic<bool> running{ true };
+        std::cout << "Server running on http://0.0.0.0:8080" << std::endl;
+        std::cout << "Open http://localhost:8080 in your browser to see 'Hello World!'" << std::endl;
 
-// Основной сервер
-void run_server(net::io_context& ioc, unsigned short port, RequestHandler& handler) {
-    tcp::acceptor acceptor{ ioc, {tcp::v4(), port} };
-    while (running.load()) {
-        tcp::socket socket{ ioc };
+        boost::thread_group thread_group;
 
-        acceptor.async_accept(socket);
-        std::make_shared<Session>(std::move(socket), handler)->run();
-    }
-}
+        for (;;)
+        {
+            // Создаем shared_ptr для socket
+            auto socket = boost::make_shared<tcp::socket>(ioc);
 
-void signalHandler(int signal) {
-    std::cout << "Received signal " << signal << ", shutting down..." << std::endl;
-    running.store(false);
-}
+            SessionHandler::send_lambda<tcp::socket> lambda{ *socket.get(), close, ec};
 
-int main() {
-    try {
-        // Устанавливаем обработчики сигналов
-        std::signal(SIGINT, signalHandler);
-        std::signal(SIGTERM, signalHandler);
+            acceptor.accept(*socket);
 
-        net::io_context ioc;
-        unsigned short port = 8080;
-
-        ModuleRegistry registry;
-
-        auto* requestModule = registry.registerModule<RequestHandler>();
+            http::request<http::string_body> req;
+            http::read(*socket.get(), buffer, req, ec);
+            if (ec == http::error::end_of_stream) continue;
+            if (ec) break;
 
 
+            requestModule->handleRequest(std::move(req), lambda);
+            if (ec) break;
+            if (close) continue;
 
-        if (!registry.initializeAll()) {
-            std::cerr << "Failed to initialize all modules" << std::endl;
-            return EXIT_FAILURE;
+            // Создаем поток с помощью Boost.Thread, используя shared_ptr
+            //thread_group.create_thread([socket, buffer, ec, requestModule]() {
+            //    try {
+            //        http::request<http::string_body> req;
+            //        http::read(*socket.get(), buffer, req, ec);
+            //        if (ec == http::error::end_of_stream) return;
+            //        if (ec) return;
+
+            //        // Отправляем ответ "Hello World!"
+            //        requestModule->handle_request(std::move(req), lambda);
+            //        if (ec) return;
+            //        if (close) break;
+            //    }
+            //    catch (const std::exception& e) {
+            //        std::cerr << "Thread error: " << e.what() << std::endl;
+            //    }
+            //    });
         }
-
-        std::cout << "All modules initialized successfully" << std::endl;
-        std::cout << "Server running on http://localhost:8080" << std::endl;
-        std::cout << "Press Ctrl+C to exit" << std::endl;
-
-
-        // Запускаем сервер с передачей вашего модуля
-        run_server(ioc, port, *requestModule);
-
-        // Корректное завершение
-        std::cout << "Shutting down modules..." << std::endl;
-        registry.shutdownAll();
-
-        std::cout << "Application terminated successfully" << std::endl;
-        return EXIT_SUCCESS;
     }
-    catch (const std::exception& e) {
-        std::cerr << "Fatal error: " << e.what() << std::endl;
+    catch (const std::exception& e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-    return 0;
 }
