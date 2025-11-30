@@ -60,17 +60,18 @@ private:
     }
 };
 
+std::atomic<bool> running{ true };
+
 // Основной сервер
 void run_server(net::io_context& ioc, unsigned short port, RequestHandler& handler) {
     tcp::acceptor acceptor{ ioc, {tcp::v4(), port} };
-    for (;;) {
+    while (running.load()) {
         tcp::socket socket{ ioc };
-        acceptor.accept(socket);
+
+        acceptor.async_accept(socket);
         std::make_shared<Session>(std::move(socket), handler)->run();
     }
 }
-
-std::atomic<bool> running{ true };
 
 void signalHandler(int signal) {
     std::cout << "Received signal " << signal << ", shutting down..." << std::endl;
@@ -104,11 +105,6 @@ int main() {
 
         // Запускаем сервер с передачей вашего модуля
         run_server(ioc, port, *requestModule);
-        
-        // Главный цикл
-        while (running.load()) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
 
         // Корректное завершение
         std::cout << "Shutting down modules..." << std::endl;

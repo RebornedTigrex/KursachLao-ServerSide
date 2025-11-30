@@ -130,6 +130,7 @@
     <ClCompile Include="KursachLao-ServerSide.cpp" />
     <ClCompile Include="RequestHandler.cpp" />
     <ClCompile Include="ServerModule.cpp" />
+    <ClCompile Include="SessionHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseModule.h" />
@@ -137,6 +138,7 @@
     <ClInclude Include="IModule.h" />
     <ClInclude Include="RequestHandler.h" />
     <ClInclude Include="ServerModule.h" />
+    <ClInclude Include="SessionHandler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

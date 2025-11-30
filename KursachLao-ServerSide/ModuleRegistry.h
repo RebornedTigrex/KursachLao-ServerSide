@@ -78,7 +78,6 @@ public:
     }
 
     void shutdownAll() {
-        std::lock_guard<std::mutex> lock(mutex_);
         for (auto& [id, module] : modules_) {
             if (module->isEnabled()) {
                 module->shutdown();
