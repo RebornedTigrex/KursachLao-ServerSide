@@ -1,6 +1,8 @@
-﻿#include "SessionHandler.h"
+﻿#include "LambdaSenders.h"
 #include "RequestHandler.h"
 #include "ModuleRegistry.h"
+
+#include "macros.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/thread.hpp>
@@ -11,6 +13,22 @@
 namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
 
+void CreateNewHandlers(RequestHandler* module) {
+
+    module->addRouteHandler("/test", [](const sRequest& req, sResponce& res) {
+        res.set(http::field::content_type, "text/plain");
+        res.body() = "RequestHandler Module Scaling Test. \nТак же проверка поддержки русского языка.";
+        }
+    );
+
+    module->addRouteHandler("/hello-world-html", [](const sRequest& req, fResponce& res) {
+        res.set(http::field::content_type, "text/html");
+        res.body() = ;
+        }
+    );
+
+}
+
 int main()
 {
     ModuleRegistry registry;
@@ -18,6 +36,8 @@ int main()
     auto* requestModule = registry.registerModule<RequestHandler>();
 
     registry.initializeAll();
+
+    CreateNewHandlers(requestModule);
 
     try
     {
@@ -41,7 +61,7 @@ int main()
             // Создаем shared_ptr для socket
             auto socket = boost::make_shared<tcp::socket>(ioc);
 
-            SessionHandler::send_lambda<tcp::socket> lambda{ *socket.get(), close, ec};
+            LambdaSenders::send_lambda<tcp::socket> lambda{ *socket.get(), close, ec };
 
             acceptor.accept(*socket);
 
