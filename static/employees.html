@@ -13,19 +13,19 @@
     <custom-navbar></custom-navbar>
 <main class="container mx-auto px-4 py-8">
 <div class="flex justify-between items-center mb-8">
-            <h1 class="text-2xl font-bold text-gray-800">Employees Management</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Управление сотрудниками</h1>
             <button id="add-employee-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
                 <i data-feather="plus" class="mr-2 w-4 h-4"></i>
-                Add Employee
+                Добавить сотрудника
             </button>
         </div>
 
         <!-- Status Filters -->
         <div class="flex space-x-2 mb-6 overflow-x-auto pb-2">
-            <a href="?status=all" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-gray-200 hover:bg-gray-300">All</a>
-            <a href="?status=hired" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-green-100 hover:bg-green-200 text-green-800">Hired</a>
-            <a href="?status=fired" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-red-100 hover:bg-red-200 text-red-800">Fired</a>
-            <a href="?status=interview" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-blue-100 hover:bg-blue-200 text-blue-800">Interview</a>
+            <a href="?status=all" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-gray-200 hover:bg-gray-300">Все</a>
+            <a href="?status=hired" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-green-100 hover:bg-green-200 text-green-800">Нанятые</a>
+            <a href="?status=fired" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-red-100 hover:bg-red-200 text-red-800">Уволенные</a>
+            <a href="?status=interview" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-blue-100 hover:bg-blue-200 text-blue-800">Собеседования</a>
         </div>
 
         <!-- Employees Table -->
@@ -34,11 +34,11 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Penalties</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bonuses</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Зарплата</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Штрафы</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Бонусы</th>
                         </tr>
                     </thead>
                     <tbody id="employees-table-body" class="bg-white divide-y divide-gray-200">
@@ -52,7 +52,7 @@
         <div id="add-employee-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Add New Employee</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Добавить нового сотрудника</h2>
                     <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
                         <i data-feather="x"></i>
                     </button>
@@ -60,27 +60,27 @@
 
                 <form id="add-employee-form" class="space-y-4">
                     <div>
-                        <label for="fullname" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <label for="fullname" class="block text-sm font-medium text-gray-700 mb-1">Полное имя</label>
                         <input type="text" id="fullname" name="fullname" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
                     <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
                         <select id="status" name="status" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="hired">Hired</option>
-                            <option value="fired">Fired</option>
-                            <option value="interview">Interview</option>
+                            <option value="hired">Нанят</option>
+                            <option value="fired">Уволен</option>
+                            <option value="interview">Собеседование</option>
                         </select>
                     </div>
 
                     <div>
-                        <label for="salary" class="block text-sm font-medium text-gray-700 mb-1">Salary</label>
+                        <label for="salary" class="block text-sm font-medium text-gray-700 mb-1">Зарплата</label>
                         <input type="number" id="salary" name="salary" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
                     <div class="flex justify-end space-x-3 pt-4">
-                        <button type="button" id="cancel-add-btn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Add Employee</button>
+                        <button type="button" id="cancel-add-btn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Отмена</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Добавить сотрудника</button>
                     </div>
                 </form>
             </div>
@@ -89,7 +89,7 @@
         <div id="penalty-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Add Penalty</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Добавить штраф</h2>
                     <button id="close-penalty-modal" class="text-gray-500 hover:text-gray-700">
                         <i data-feather="x"></i>
                     </button>
@@ -98,15 +98,15 @@
                 <form id="add-penalty-form" class="space-y-4">
                     <input type="hidden" id="penalty-employee-id">
                     <div>
-                        <label for="penalty-reason" class="block text-sm font-medium text-gray-700">Reason</label>
+                        <label for="penalty-reason" class="block text-sm font-medium text-gray-700">Причина</label>
                         <input type="text" id="penalty-reason" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div>
-                        <label for="penalty-amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                        <label for="penalty-amount" class="block text-sm font-medium text-gray-700">Сумма</label>
                         <input type="number" id="penalty-amount" required class="w-full px-3 py-2 border border-gray-300 rounded-md" value="200">
                     </div>
                     <button type="submit" class="w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">
-                        Add Penalty
+                        Добавить штраф
                     </button>
                 </form>
             </div>
@@ -116,7 +116,7 @@
         <div id="bonus-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Add Bonus</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Добавить бонус</h2>
                     <button id="close-bonus-modal" class="text-gray-500 hover:text-gray-700">
                         <i data-feather="x"></i>
                     </button>
@@ -125,15 +125,15 @@
                 <form id="add-bonus-form" class="space-y-4">
                     <input type="hidden" id="bonus-employee-id">
                     <div>
-                        <label for="bonus-reason" class="block text-sm font-medium text-gray-700">Reason</label>
+                        <label for="bonus-reason" class="block text-sm font-medium text-gray-700">Причина</label>
                         <input type="text" id="bonus-reason" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div>
-                        <label for="bonus-amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                        <label for="bonus-amount" class="block text-sm font-medium text-gray-700">Сумма</label>
                         <input type="number" id="bonus-amount" required class="w-full px-3 py-2 border border-gray-300 rounded-md" value="500">
                     </div>
                     <button type="submit" class="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">
-                        Add Bonus
+                        Добавить бонус
                     </button>
                 </form>
             </div>
@@ -141,7 +141,7 @@
 
         <!-- Success Notification -->
         <div id="success-notification" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden">
-            Operation completed successfully!
+            Операция успешно завершена!
         </div>
 </main>
 
@@ -353,6 +353,66 @@
                 window.location.reload();
             }, 1000);
         });
+        
+        // Listen for cache updates and refresh employee list
+        let employeesLoadingPromise = null;
+        
+        async function reloadEmployeeTable() {
+            if (employeesLoadingPromise) return employeesLoadingPromise;
+            
+            employeesLoadingPromise = (async () => {
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const statusFilter = urlParams.get('status') || 'all';
+                    const employees = await window.dataCache.getEmployees();
+                    const tbody = document.getElementById('employees-table-body');
+                    tbody.innerHTML = '';
+
+            employees
+                .filter(emp => statusFilter === 'all' || emp.status === statusFilter)
+                .forEach(emp => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+
+                    const statusColors = {
+                        'hired': 'bg-green-100 text-green-800',
+                        'fired': 'bg-red-100 text-red-800',
+                        'interview': 'bg-blue-100 text-blue-800'
+                    };
+
+                    const salaryClass = emp.status !== 'hired' ? 'text-gray-400' : '';
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full ${statusColors[emp.status]}">${emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap ${salaryClass}">$${emp.salary.toLocaleString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span>${emp.penalties}</span>
+                            <button data-employee-id="${emp.id}" class="ml-2 text-red-500 hover:text-red-700 add-penalty">
+                                <i data-feather="plus" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span>${emp.bonuses}</span>
+                            <button data-employee-id="${emp.id}" class="ml-2 text-green-500 hover:text-green-700 add-bonus">
+                                <i data-feather="plus" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                    });
+                    
+                    feather.replace();
+                } finally {
+                    employeesLoadingPromise = null;
+                }
+            })();
+            return employeesLoadingPromise;
+        }
+        
+        window.addEventListener('dataCache:updated', reloadEmployeeTable);
     </script>
 </body>
 </html>

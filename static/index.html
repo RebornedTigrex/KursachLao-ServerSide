@@ -16,64 +16,64 @@
             <!-- Penalties Card -->
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-700">Penalties</h2>
+                    <h2 class="text-lg font-semibold text-gray-700">Штрафы</h2>
                     <i data-feather="alert-triangle" class="text-red-500"></i>
                 </div>
                 <div class="text-3xl font-bold text-red-600" id="penalties-count">0</div>
-                <p class="text-gray-500 mt-2">This month</p>
+                <p class="text-gray-500 mt-2">За месяц</p>
             </div>
             
             <!-- Bonuses Card -->
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-700">Bonuses</h2>
+                    <h2 class="text-lg font-semibold text-gray-700">Бонусы</h2>
                     <i data-feather="gift" class="text-green-500"></i>
                 </div>
                 <div class="text-3xl font-bold text-green-600" id="bonuses-count">0</div>
-                <p class="text-gray-500 mt-2">This month</p>
+                <p class="text-gray-500 mt-2">За месяц</p>
             </div>
             
             <!-- Undertime Card -->
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-700">Undertime</h2>
+                    <h2 class="text-lg font-semibold text-gray-700">Недоработка</h2>
                     <i data-feather="clock" class="text-yellow-500"></i>
                 </div>
                 <div class="text-3xl font-bold text-yellow-600" id="undertime-count">0</div>
-                <p class="text-gray-500 mt-2">Hours this month</p>
+                <p class="text-gray-500 mt-2">Часов за месяц</p>
             </div>
         </div>
         
         <div class="bg-white rounded-xl shadow-md p-6">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-gray-800">Quick Actions</h2>
+                <h2 class="text-xl font-bold text-gray-800">Быстрые действия</h2>
                 <a href="employees.html" class="text-blue-500 hover:text-blue-700 flex items-center">
-                    <span>View All</span>
+                    <span>Показать все</span>
                     <i data-feather="chevron-right" class="ml-1 w-4 h-4"></i>
                 </a>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="employees.html?status=hired" class="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <a href="salary.html" class="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div class="flex items-center">
                         <div class="bg-green-100 p-3 rounded-full mr-4">
-                            <i data-feather="user-plus" class="text-green-500"></i>
+                            <i data-feather="dollar-sign" class="text-green-500"></i>
                         </div>
                         <div>
-                            <h3 class="font-medium">Hired Employees</h3>
-                            <p class="text-sm text-gray-500">View active staff</p>
+                            <h3 class="font-medium">Зарплаты</h3>
+                            <p class="text-sm text-gray-500">Перейти к управлению зарплатой</p>
                         </div>
                     </div>
                 </a>
                 
-                <a href="employees.html?status=fired" class="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <a href="hours.html" class="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div class="flex items-center">
-                        <div class="bg-red-100 p-3 rounded-full mr-4">
-                            <i data-feather="user-minus" class="text-red-500"></i>
+                        <div class="bg-blue-100 p-3 rounded-full mr-4">
+                            <i data-feather="clock" class="text-blue-500"></i>
                         </div>
                         <div>
-                            <h3 class="font-medium">Fired Employees</h3>
-                            <p class="text-sm text-gray-500">Past employees</p>
+                            <h3 class="font-medium">Отработанные часы</h3>
+                            <p class="text-sm text-gray-500">Просмотр учёта часов</p>
                         </div>
                     </div>
                 </a>
@@ -102,15 +102,19 @@
     <script src="modules/dataCache.js"></script>
     <script>
         feather.replace();
-        // Initialize dashboard data
-        document.addEventListener('DOMContentLoaded', async () => {
-            const data = await window.dataCache.getDashboardData();
-            // Get aggregated data
-            const employees = await window.dataCache.getEmployees();
+        
+        let dashboardLoadingPromise = null;
+        
+        async function updateDashboard() {
+            if (dashboardLoadingPromise) return dashboardLoadingPromise;
+            
+            dashboardLoadingPromise = (async () => {
+                try {
+                    const data = await window.dataCache.getDashboardData();
+                    const employees = await window.dataCache.getEmployees();
             const penalties = employees.reduce((sum, emp) => sum + (emp.penalties || 0), 0);
             const bonuses = employees.reduce((sum, emp) => sum + (emp.bonuses || 0), 0);
             
-            // Get hours data
             const hoursData = await Promise.all(
                 employees
                     .filter(emp => emp.status === 'hired')
@@ -119,12 +123,21 @@
             
             const undertime = hoursData.reduce((sum, h) => sum + (h.undertime || 0), 0);
             
-            // Update UI
-            document.getElementById('penalties-count').textContent = penalties;
-            document.getElementById('bonuses-count').textContent = bonuses;
-            document.getElementById('undertime-count').textContent = undertime.toFixed(1);
-});
+                    document.getElementById('penalties-count').textContent = penalties;
+                    document.getElementById('bonuses-count').textContent = bonuses;
+                    document.getElementById('undertime-count').textContent = undertime.toFixed(1);
+                } finally {
+                    dashboardLoadingPromise = null;
+                }
+            })();
+            return dashboardLoadingPromise;
+        }
+        
+        // Initialize dashboard data
+        document.addEventListener('DOMContentLoaded', updateDashboard);
+        
+        // Listen for cache updates and refresh dashboard
+        window.addEventListener('dataCache:updated', updateDashboard);
     </script>
-<script src="https://huggingface.co/deepsite/deepsite-badge.js"></script>
 </body>
 </html>

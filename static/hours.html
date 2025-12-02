@@ -13,16 +13,16 @@
     <custom-navbar></custom-navbar>
     
     <main class="container mx-auto px-4 py-8">
-<h1 class="text-2xl font-bold text-gray-800 mb-8">Work Hours Tracking</h1>
+<h1 class="text-2xl font-bold text-gray-800 mb-8">Учет отработанного времени</h1>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-700">Total Hours</h2>
+                    <h2 class="text-lg font-semibold text-gray-700">Всего часов</h2>
                     <i data-feather="clock" class="text-blue-500"></i>
                 </div>
                 <div class="text-3xl font-bold text-blue-600" id="total-hours">160</div>
-                <p class="text-gray-500 mt-2">This month</p>
+                <p class="text-gray-500 mt-2">За месяц</p>
             </div>
             
             <div class="bg-white rounded-xl shadow-md p-6">
@@ -31,7 +31,7 @@
                     <i data-feather="alert-triangle" class="text-yellow-500"></i>
                 </div>
                 <div class="text-3xl font-bold text-yellow-600" id="undertime-hours">4.5</div>
-                <p class="text-gray-500 mt-2">Hours this month</p>
+                <p class="text-gray-500 mt-2">Часов за месяц</p>
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -40,11 +40,11 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Regular Hours</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Overtime</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Undertime</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сотрудник</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Обычные часы</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сверхурочные</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Недоработка</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                             </tr>
                         </thead>
                         <tbody id="hours-table-body" class="bg-white divide-y divide-gray-200">
@@ -55,40 +55,71 @@
             </div>
 
             <div class="bg-white rounded-xl shadow-md p-6">
-                <h2 class="text-lg font-semibold text-gray-700 mb-4">Add Work Hours</h2>
+                <h2 class="text-lg font-semibold text-gray-700 mb-4">Добавить рабочие часы</h2>
                 <form id="add-hours-form" class="space-y-4">
                     <div>
-                        <label for="hours-employee" class="block text-sm font-medium text-gray-700">Employee</label>
+                        <label for="hours-employee" class="block text-sm font-medium text-gray-700">Сотрудник</label>
                         <select id="hours-employee" name="employeeId" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
                             <!-- Will be populated by JavaScript -->
                         </select>
                     </div>
 
                     <div>
-                        <label for="regular-hours" class="block text-sm font-medium text-gray-700">Regular Hours</label>
+                        <label for="regular-hours" class="block text-sm font-medium text-gray-700">Обычные часы</label>
                         <input type="number" id="regular-hours" name="regularHours" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
 
                     <div>
-                        <label for="overtime" class="block text-sm font-medium text-gray-700">Overtime</label>
+                        <label for="overtime" class="block text-sm font-medium text-gray-700">Сверхурочные</label>
                         <input type="number" id="overtime" name="overtime" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
                     </div>
 
                     <div>
-                        <label for="undertime" class="block text-sm font-medium text-gray-700">Undertime</label>
+                        <label for="undertime" class="block text-sm font-medium text-gray-700">Недоработка</label>
                         <input type="number" id="undertime" name="undertime" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
                     </div>
 
                     <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">
-                        Add Hours
+                        Добавить часы
                     </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Hours Modal -->
+        <div id="edit-hours-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium">Редактировать часы</h3>
+                    <button id="close-edit-hours" class="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+
+                <form id="edit-hours-form" class="space-y-4">
+                    <input type="hidden" id="edit-hours-employee-id">
+                    <div>
+                        <label for="edit-regular-hours" class="block text-sm font-medium text-gray-700">Обычные часы</label>
+                        <input type="number" id="edit-regular-hours" name="regularHours" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    <div>
+                        <label for="edit-overtime" class="block text-sm font-medium text-gray-700">Сверхурочные</label>
+                        <input type="number" id="edit-overtime" name="overtime" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
+                    </div>
+                    <div>
+                        <label for="edit-undertime" class="block text-sm font-medium text-gray-700">Недоработка</label>
+                        <input type="number" id="edit-undertime" name="undertime" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
+                    </div>
+
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" id="cancel-edit-hours" class="px-4 py-2 bg-gray-200 rounded-md">Отмена</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md">Сохранить</button>
+                    </div>
                 </form>
             </div>
         </div>
 
         <!-- Success Notification -->
         <div id="hours-success-notification" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden">
-            Hours added successfully!
+            Часы успешно добавлены!
         </div>
 </main>
     
@@ -99,75 +130,148 @@
     <script src="modules/dataCache.js"></script>
     <script>
         feather.replace();
-        document.addEventListener('DOMContentLoaded', async () => {
-            const employees = await window.dataCache.getEmployees();
+        document.addEventListener('DOMContentLoaded', () => {
             const tbody = document.getElementById('hours-table-body');
             const employeeSelect = document.getElementById('hours-employee');
+            const editModal = document.getElementById('edit-hours-modal');
+            const editForm = document.getElementById('edit-hours-form');
             
-            // Populate employee dropdown
-            employeeSelect.innerHTML = '';
-            employees
-                .filter(emp => emp.status === 'hired')
-                .forEach(emp => {
-                    const option = document.createElement('option');
-                    option.value = emp.id;
-                    option.textContent = emp.fullname;
-                    employeeSelect.appendChild(option);
-                });
+            let loadingPromise = null; // Prevent concurrent loads
 
-            // Load and display hours
+            // Load employees and hours with debounce protection
             async function loadHours() {
-                tbody.innerHTML = '';
+                // If already loading, wait for it
+                if (loadingPromise) {
+                    return loadingPromise;
+                }
                 
-                employees
-                    .filter(emp => emp.status === 'hired')
-                    .forEach(async emp => {
-                        const hoursData = await window.dataCache.getHoursForEmployee(emp.id);
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-gray-50';
-                        
-                        row.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">${hoursData.regularHours}h</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-green-600">+${hoursData.overtime}h</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-red-600">-${hoursData.undertime.toFixed(1)}h</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <button data-employee-id="${emp.id}" class="edit-hours text-blue-500 hover:text-blue-700 mr-2">
-                                    <i data-feather="edit-2" class="w-4 h-4"></i>
-                                </button>
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                    
-                feather.replace();
+                loadingPromise = (async () => {
+                    try {
+                        tbody.innerHTML = '';
+
+                        const employees = await window.dataCache.getEmployees();
+                        const hired = employees.filter(emp => emp.status === 'hired');
+
+                        // Populate employee dropdown (clear first)
+                        employeeSelect.innerHTML = '';
+                        hired.forEach(emp => {
+                            const option = document.createElement('option');
+                            option.value = emp.id;
+                            option.textContent = emp.fullname;
+                            employeeSelect.appendChild(option);
+                        });
+
+                        const rows = await Promise.all(hired.map(async emp => {
+                            const hoursData = await window.dataCache.getHoursForEmployee(emp.id);
+                            return { emp, hoursData };
+                        }));
+
+                        let totalHours = 0;
+                        let totalUndertime = 0;
+
+                        rows.forEach(({ emp, hoursData }) => {
+                            totalHours += Number(hoursData.regularHours || 0) + Number(hoursData.overtime || 0);
+                            totalUndertime += Number(hoursData.undertime || 0);
+
+                            const row = document.createElement('tr');
+                            row.className = 'hover:bg-gray-50';
+                            row.innerHTML = `
+                                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">${hoursData.regularHours}h</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-green-600">+${hoursData.overtime}h</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-red-600">-${Number(hoursData.undertime).toFixed(1)}h</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <button data-employee-id="${emp.id}" class="edit-hours text-blue-500 hover:text-blue-700 mr-2">
+                                        <i data-feather="edit-2" class="w-4 h-4"></i>
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+
+                        // Update summary counters
+                        document.getElementById('total-hours').textContent = totalHours;
+                        document.getElementById('undertime-hours').textContent = totalUndertime.toFixed(1);
+
+                        feather.replace();
+                    } finally {
+                        loadingPromise = null;
+                    }
+                })();
+                
+                return loadingPromise;
             }
 
-            // Form submission
+            // Edit hours modal handling
+            document.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.edit-hours');
+                if (!btn) return;
+                const employeeId = parseInt(btn.dataset.employeeId, 10);
+                const hoursData = await window.dataCache.getHoursForEmployee(employeeId);
+
+                document.getElementById('edit-hours-employee-id').value = employeeId;
+                document.getElementById('edit-regular-hours').value = hoursData.regularHours || 0;
+                document.getElementById('edit-overtime').value = hoursData.overtime || 0;
+                document.getElementById('edit-undertime').value = hoursData.undertime || 0;
+
+                editModal.classList.remove('hidden');
+            });
+
+            document.getElementById('close-edit-hours').addEventListener('click', () => editModal.classList.add('hidden'));
+            document.getElementById('cancel-edit-hours').addEventListener('click', () => editModal.classList.add('hidden'));
+
+            editForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const employeeId = parseInt(document.getElementById('edit-hours-employee-id').value, 10);
+                const payload = {
+                    regularHours: parseFloat(document.getElementById('edit-regular-hours').value) || 0,
+                    overtime: parseFloat(document.getElementById('edit-overtime').value) || 0,
+                    undertime: parseFloat(document.getElementById('edit-undertime').value) || 0
+                };
+
+                await window.dataCache.addHours(employeeId, payload);
+                editModal.classList.add('hidden');
+
+                // Show success notification
+                const notification = document.getElementById('hours-success-notification');
+                notification.classList.remove('hidden');
+                setTimeout(() => notification.classList.add('hidden'), 2000);
+
+                // load fresh data
+                await loadHours();
+            });
+
+            // Form submission (add new hours entry)
             document.getElementById('add-hours-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                
+
                 const formData = {
-                    employeeId: parseInt(employeeSelect.value),
-                    regularHours: parseFloat(document.getElementById('regular-hours').value),
-                    overtime: parseFloat(document.getElementById('overtime').value),
-                    undertime: parseFloat(document.getElementById('undertime').value)
+                    employeeId: parseInt(employeeSelect.value, 10),
+                    regularHours: parseFloat(document.getElementById('regular-hours').value) || 0,
+                    overtime: parseFloat(document.getElementById('overtime').value) || 0,
+                    undertime: parseFloat(document.getElementById('undertime').value) || 0
                 };
-                
+
                 await window.dataCache.addHours(formData.employeeId, formData);
                 
+                // Clear form
+                document.getElementById('add-hours-form').reset();
+
                 // Show success notification
                 const notification = document.getElementById('hours-success-notification');
                 notification.classList.remove('hidden');
                 setTimeout(() => notification.classList.add('hidden'), 3000);
-                
-                // Reload data
-                loadHours();
+
+                // load fresh data
+                await loadHours();
             });
+
+            // Listen for external cache updates and refresh (debounced by loadingPromise check)
+            window.addEventListener('dataCache:updated', loadHours);
 
             // Initial load
             loadHours();
         });
-</script>
+    </script>
 </body>
 </html>
