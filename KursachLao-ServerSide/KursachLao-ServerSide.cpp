@@ -1,6 +1,7 @@
 ﻿#include "LambdaSenders.h"
 #include "RequestHandler.h"
 #include "ModuleRegistry.h"
+#include "FileCache.h"
 
 #include "macros.h"
 
@@ -10,20 +11,51 @@
 #include <iostream>
 #include <memory>
 
+#include <fstream>
+#include <sstream>
+
 namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
 
-void CreateNewHandlers(RequestHandler* module) {
+namespace fs = std::filesystem;
+
+void CreateNewHandlers(RequestHandler* module, std::string staticFolder) {
+
+	//fs::path cwd = fs::current_path(); 
+    //std::cout << "Current working directory: " << cwd << std::endl;
+
+	
 
     module->addRouteHandler("/test", [](const sRequest& req, sResponce& res) {
+		if (req.method() != http::verb::get) {
+            res.result(http::status::method_not_allowed);
+            res.set(http::field::content_type, "text/plain");
+            res.body() = "Method Not Allowed. Use GET.";
+            return;
+        }
         res.set(http::field::content_type, "text/plain");
         res.body() = "RequestHandler Module Scaling Test. \nТак же проверка поддержки русского языка.";
+        res.result(http::status::ok);
         }
     );
 
-    module->addRouteHandler("/hello-world-html", [](const sRequest& req, fResponce& res) {
+
+    module->addRouteHandler("/index", [](const sRequest& req, sResponce& res){
+
+        std::string&& file_path = "..\\static\\index.html";
+        std::ifstream file(file_path);
+
         res.set(http::field::content_type, "text/html");
-        res.body() = ;
+        res.set(http::field::server, "Server");
+
+        res.result(http::status::ok);
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        res.body() = buffer.str();
+
+        res.keep_alive(req.keep_alive());
+
         }
     );
 
@@ -32,12 +64,16 @@ void CreateNewHandlers(RequestHandler* module) {
 int main()
 {
     ModuleRegistry registry;
+    FileCache cache("..\\static");
+
 
     auto* requestModule = registry.registerModule<RequestHandler>();
 
+    CreateNewHandlers(requestModule, "..\\static");
+
     registry.initializeAll();
 
-    CreateNewHandlers(requestModule);
+
 
     try
     {

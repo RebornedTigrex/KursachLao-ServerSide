@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Harmony Hub | Page Not Found</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        .error-404 {
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .glitch {
+            position: relative;
+            color: #1f2937;
+        }
+        
+        .glitch::before,
+        .glitch::after {
+            content: '404';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .glitch::before {
+            left: 2px;
+            text-shadow: -2px 0 #ff0000;
+            animation: glitch-1 2s infinite linear alternate-reverse;
+        }
+        
+        .glitch::after {
+            left: -2px;
+            text-shadow: 2px 0 #00ffff;
+            animation: glitch-2 3s infinite linear alternate-reverse;
+        }
+        
+        @keyframes glitch-1 {
+            0% { clip-path: inset(40% 0 61% 0); }
+            5% { clip-path: inset(92% 0 1% 0); }
+            10% { clip-path: inset(43% 0 1% 0); }
+            15% { clip-path: inset(25% 0 58% 0); }
+            20% { clip-path: inset(54% 0 7% 0); }
+            25% { clip-path: inset(58% 0 43% 0); }
+            30% { clip-path: inset(98% 0 1% 0); }
+            35% { clip-path: inset(80% 0 5% 0); }
+            40% { clip-path: inset(75% 0 9% 0); }
+            45% { clip-path: inset(9% 0 90% 0); }
+            50% { clip-path: inset(65% 0 25% 0); }
+            55% { clip-path: inset(90% 0 1% 0); }
+            60% { clip-path: inset(80% 0 1% 0); }
+            65% { clip-path: inset(45% 0 50% 0); }
+            70% { clip-path: inset(10% 0 85% 0); }
+            75% { clip-path: inset(25% 0 60% 0); }
+            80% { clip-path: inset(80% 0 1% 0); }
+            85% { clip-path: inset(90% 0 4% 0); }
+            90% { clip-path: inset(50% 0 40% 0); }
+            95% { clip-path: inset(10% 0 60% 0); }
+            100% { clip-path: inset(5% 0 60% 0); }
+        }
+        
+        @keyframes glitch-2 {
+            0% { clip-path: inset(25% 0 30% 0); }
+            5% { clip-path: inset(9% 0 35% 0); }
+            10% { clip-path: inset(96% 0 1% 0); }
+            15% { clip-path: inset(15% 0 75% 0); }
+            20% { clip-path: inset(55% 0 30% 0); }
+            25% { clip-path: inset(60% 0 7% 0); }
+            30% { clip-path: inset(88% 0 1% 0); }
+            35% { clip-path: inset(70% 0 8% 0); }
+            40% { clip-path: inset(50% 0 40% 0); }
+            45% { clip-path: inset(15% 0 70% 0); }
+            50% { clip-path: inset(70% 0 20% 0); }
+            55% { clip-path: inset(85% 0 4% 0); }
+            60% { clip-path: inset(65% 0 25% 0); }
+            65% { clip-path: inset(35% 0 55% 0); }
+            70% { clip-path: inset(5% 0 85% 0); }
+            75% { clip-path: inset(30% 0 45% 0); }
+            80% { clip-path: inset(75% 0 5% 0); }
+            85% { clip-path: inset(85% 0 10% 0); }
+            90% { clip-path: inset(45% 0 45% 0); }
+            95% { clip-path: inset(5% 0 85% 0); }
+            100% { clip-path: inset(2% 0 85% 0); }
+        }
+        
+        .main-message {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+        
+        .sub-message {
+            font-size: 1.5rem;
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+        
+        .warning-message {
+            font-size: 1.25rem;
+            color: #4b5563;
+            margin-bottom: 2rem;
+        }
+        
+        .ip-display {
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-family: 'Courier New', monospace;
+            color: #374151;
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+        
+        @media (max-width: 768px) {
+            .main-message {
+                font-size: 2.5rem;
+            }
+            
+            .sub-message {
+                font-size: 1.25rem;
+            }
+            
+            .warning-message {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <custom-navbar></custom-navbar>
+    
+    <main class="container mx-auto px-4 py-8">
+        <div class="error-404 min-h-[70vh] flex flex-col items-center justify-center text-center">
+            <!-- Glitch Effect 404 -->
+            <div class="relative mb-8">
+                <h1 class="glitch text-9xl font-bold text-gray-800">404</h1>
+                <div class="absolute -inset-4 bg-gradient-to-r from-blue-500 to-purple-500 opacity-10 blur-xl rounded-full"></div>
+            </div>
+            
+            <!-- Main Message -->
+            <h2 class="main-message text-gray-900">
+                Ой! Кажется Тигрекс съел вашу страницу...
+            </h2>
+
+            
+            <!-- emoji -->
+            <span class="text-2xl ml-2" id="emoji">😊
+            </span>
+            
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-4 justify-center mt-8">
+                <a href="index.html" 
+                   class="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
+                    <i data-feather="home" class="w-5 h-5"></i>
+                    На главную
+                </a>
+                
+                <a href="employees.html" 
+                   class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
+                    <i data-feather="users" class="w-5 h-5"></i>
+                    Сотрудники
+                </a>
+                
+                <a href="salary.html" 
+                   class="inline-flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
+                    <i data-feather="dollar-sign" class="w-5 h-5"></i>
+                    Зарплаты
+                </a>
+                
+                <a href="hours.html" 
+                   class="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
+                    <i data-feather="clock" class="w-5 h-5"></i>
+                    Часы работы
+                </a>
+            </div>
+            
+            <!-- Helpful Links -->
+            <div class="mt-12 p-6 bg-white rounded-xl shadow-md max-w-lg">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Возможно, вы искали:</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <a href="index.html" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
+                        <i data-feather="pie-chart" class="w-4 h-4"></i>
+                        Дашборд
+                    </a>
+                    <a href="employees.html?status=hired" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
+                        <i data-feather="user-check" class="w-4 h-4"></i>
+                        Нанятые сотрудники
+                    </a>
+                    <a href="employees.html?status=interview" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
+                        <i data-feather="users" class="w-4 h-4"></i>
+                        Собеседования
+                    </a>
+                    <a href="salary.html" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
+                        <i data-feather="credit-card" class="w-4 h-4"></i>
+                        Расчет зарплат
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <custom-footer></custom-footer>
+    
+    <!-- Components -->
+    <script src="components/navbar.js"></script>
+    <script src="components/footer.js"></script>
+    
+    <script>
+        feather.replace();
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Генерация случайного IP для демонстрации
+            function generateRandomIP() {
+                const octets = [];
+                for (let i = 0; i < 4; i++) {
+                    octets.push(Math.floor(Math.random() * 255));
+                }
+                return octets.join('.');
+            }
+            
+            // Имитация геолокации
+            const locations = [
+                "• Москва, RU •",
+                "• Санкт-Петербург, RU •", 
+                "• Екатеринбург, RU •",
+                "• Новосибирск, RU •",
+                "• Казань, RU •"
+            ];
+            
+            // Обновление IP и геолокации
+            function updateIPDisplay() {
+                const ipElement = document.getElementById('fake-ip');
+                const locationElement = document.getElementById('location-info');
+                
+                const ip = generateRandomIP();
+                const location = locations[Math.floor(Math.random() * locations.length)];
+                const browserInfo = navigator.userAgent.split(' ')[0];
+                
+                ipElement.textContent = `${ip}`;
+                locationElement.textContent = `${location} Браузер: ${browserInfo}`;
+            }
+            
+            // Первоначальное обновление
+            updateIPDisplay();
+            
+            // Обновление каждые 5 секунд
+            setInterval(updateIPDisplay, 5000);
+            
+            // Анимация эмодзи
+            const emojiElement = document.getElementById('emoji');
+            const emojis = ['😊', '😉', '😄', '😎', '🤗'];
+            let emojiIndex = 0;
+            
+            emojiElement.addEventListener('mouseenter', () => {
+                emojiIndex = (emojiIndex + 1) % emojis.length;
+                emojiElement.textContent = emojis[emojiIndex];
+                emojiElement.style.transform = 'scale(1.5)';
+                setTimeout(() => {
+                    emojiElement.style.transform = 'scale(1)';
+                }, 200);
+            });
+            
+            emojiElement.addEventListener('click', () => {
+                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                emojiElement.textContent = randomEmoji;
+                
+                // Создаем всплывающий эмодзи
+                const floatingEmoji = document.createElement('div');
+                floatingEmoji.textContent = randomEmoji;
+                floatingEmoji.className = 'fixed text-3xl pointer-events-none animate-bounce';
+                floatingEmoji.style.left = `${Math.random() * window.innerWidth}px`;
+                floatingEmoji.style.top = '100%';
+                document.body.appendChild(floatingEmoji);
+                
+                // Анимация всплытия
+                setTimeout(() => {
+                    floatingEmoji.style.transition = 'all 1s ease-out';
+                    floatingEmoji.style.top = '-100px';
+                    floatingEmoji.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(floatingEmoji);
+                    }, 1000);
+                }, 10);
+            });
+            
+            // Анимация фона для эффекта
+            const backgroundAnimation = document.createElement('div');
+            backgroundAnimation.className = 'fixed inset-0 -z-10 overflow-hidden pointer-events-none';
+            document.body.appendChild(backgroundAnimation);
+            
+            // Создаем плавающие элементы фона
+            for (let i = 0; i < 15; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'absolute rounded-full bg-gradient-to-r from-blue-200 to-purple-200 opacity-20';
+                dot.style.width = `${Math.random() * 100 + 50}px`;
+                dot.style.height = dot.style.width;
+                dot.style.left = `${Math.random() * 100}%`;
+                dot.style.top = `${Math.random() * 100}%`;
+                dot.style.animation = `float ${Math.random() * 10 + 10}s infinite ease-in-out`;
+                backgroundAnimation.appendChild(dot);
+            }
+            
+            // Добавляем стили для анимации плавания
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes float {
+                    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                    25% { transform: translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) rotate(${Math.random() * 90 - 45}deg); }
+                    50% { transform: translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) rotate(${Math.random() * 90 - 45}deg); }
+                    75% { transform: translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) rotate(${Math.random() * 90 - 45}deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>

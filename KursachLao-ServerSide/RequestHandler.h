@@ -1,11 +1,35 @@
 #pragma once
 #include "BaseModule.h"
 #include <boost/beast/http.hpp>
+#include <sstream>
+#include <fstream>
+#include <vector>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 
 class RequestHandler : public BaseModule {
+
+    std::string attention_path;
+    std::string attention_html;
+    
+    std::string errorNotFound_path;
+    std::string errorNotFound_html;
+
+    void setupFiles() {
+        
+
+        std::stringstream buffer, buffer2;
+        std::ifstream file(attention_path);
+        buffer << file.rdbuf();
+        attention_html = buffer.str();
+
+        std::ifstream file2(errorNotFound_path);
+        buffer2 << file2.rdbuf();
+        errorNotFound_html = buffer2.str();
+
+    }
+
 public:
     RequestHandler();
 
@@ -25,9 +49,13 @@ public:
         if (it != routeHandlers_.end()) {
             it->second(req, res);
         }
+        else if(target.find("../") != std::string::npos) {
+            res.set(http::field::content_type, "text/html");
+            res.body() = attention_html;
+        }
         else {
-            res.set(http::field::content_type, "text/plain");
-            res.body() = "Route not found: " + target;
+            res.set(http::field::content_type, "text/html");
+            res.body() = errorNotFound_html;
         }
 
         res.prepare_payload();

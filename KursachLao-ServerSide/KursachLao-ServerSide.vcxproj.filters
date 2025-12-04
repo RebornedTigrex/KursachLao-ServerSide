@@ -24,6 +24,9 @@
     <ClCompile Include="ServerModule.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="FileCache.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IModule.h">
@@ -45,6 +48,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="macros.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="FileCache.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,9 +3,12 @@
 
 RequestHandler::RequestHandler()
     : BaseModule("HTTP Request Handler") {
+    attention_path = "..\\static\\attention.html";
+    errorNotFound_path = "..\\static\\errorNotFound.html";
 }
 
 bool RequestHandler::onInitialize() {
+    setupFiles();
     setupDefaultRoutes();
     std::cout << "RequestHandler initialized with " << routeHandlers_.size() << " routes" << std::endl;
     return true;
