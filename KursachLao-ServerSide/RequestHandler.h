@@ -29,6 +29,15 @@ class RequestHandler : public BaseModule {
         errorNotFound_html = buffer2.str();
     }
 
+    // NEW: Парсинг target на path и query (простой split по ?)
+    std::pair<std::string, std::string> parseTarget(const std::string& target) {
+        size_t pos = target.find('?');
+        if (pos == std::string::npos) {
+            return { target, "" };  // Нет query
+        }
+        return { target.substr(0, pos), target.substr(pos + 1) };  // path, query
+    }
+
 public:
     RequestHandler();
     // NEW: Метод для инжекции кэша (только из main)
@@ -42,12 +51,14 @@ public:
         http::response<http::string_body> res{ http::status::not_found, req.version() };
         res.set(http::field::server, "ModularServer");
         res.keep_alive(req.keep_alive());
-        std::string target = std::string(req.target());
 
-        // UPDATED: Проверяем wildcard /* для динамического поиска в кэше
+        std::string target = std::string(req.target());
+        auto [path, query] = parseTarget(target);  // NEW: Парсим path и query
+
+        // UPDATED: Проверяем wildcard /* для динамического поиска в кэше (только по path!)
         auto wildcard_it = routeHandlers_.find("/*");
-        if (wildcard_it != routeHandlers_.end() && file_cache_ && target != "/") {  // NEW: Если /* зарегистрирован и кэш есть
-            auto cached_file = file_cache_->get_file(target);  // Динамический поиск по route
+        if (wildcard_it != routeHandlers_.end() && file_cache_ && path != "/") {
+            auto cached_file = file_cache_->get_file(path);  // Ищем по чистому path
             if (cached_file) {
                 res.set(http::field::content_type, cached_file->mime_type.c_str());
                 res.body() = std::move(cached_file->content);
@@ -58,12 +69,15 @@ public:
             }
         }
 
-        // Обычная логика для точных маршрутов
-        auto it = routeHandlers_.find(target);
+        // UPDATED: Обычная логика для точных маршрутов (match по path)
+        auto it = routeHandlers_.find(path);
         if (it != routeHandlers_.end()) {
-            it->second(req, res);
+            // NEW: Передаём query в handler (если lambda ожидает — расширь signature)
+            // Для MVP: если handler статический, игнорируем query
+            // Пример: it->second(req, res, query);  // Если изменишь lambda на void(const sRequest&, sResponce&, const std::string& query)
+            it->second(req, res);  // Пока без query (для /test, /status)
         }
-        else if (target.find("../") != std::string::npos) {
+        else if (target.find("../") != std::string::npos) {  // UPDATED: Проверяем полный target (с query)
             res.set(http::field::content_type, "text/html");
             res.body() = attention_html;
         }

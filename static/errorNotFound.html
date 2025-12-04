@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Harmony Hub | Page Not Found</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://unpkg.com/feather-icons"></script>
@@ -167,25 +167,25 @@
             
             <!-- Action Buttons -->
             <div class="flex flex-wrap gap-4 justify-center mt-8">
-                <a href="index.html" 
+                <a href="index" 
                    class="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
                     <i data-feather="home" class="w-5 h-5"></i>
                     На главную
                 </a>
                 
-                <a href="employees.html" 
+                <a href="employees" 
                    class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
                     <i data-feather="users" class="w-5 h-5"></i>
                     Сотрудники
                 </a>
                 
-                <a href="salary.html" 
+                <a href="salary" 
                    class="inline-flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
                     <i data-feather="dollar-sign" class="w-5 h-5"></i>
                     Зарплаты
                 </a>
                 
-                <a href="hours.html" 
+                <a href="hours" 
                    class="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
                     <i data-feather="clock" class="w-5 h-5"></i>
                     Часы работы
@@ -196,19 +196,19 @@
             <div class="mt-12 p-6 bg-white rounded-xl shadow-md max-w-lg">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Возможно, вы искали:</h3>
                 <div class="grid grid-cols-2 gap-3">
-                    <a href="index.html" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
+                    <a href="index" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
                         <i data-feather="pie-chart" class="w-4 h-4"></i>
                         Дашборд
                     </a>
-                    <a href="employees.html?status=hired" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
+                    <a href="employees?status=hired" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
                         <i data-feather="user-check" class="w-4 h-4"></i>
                         Нанятые сотрудники
                     </a>
-                    <a href="employees.html?status=interview" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
+                    <a href="employees?status=interview" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
                         <i data-feather="users" class="w-4 h-4"></i>
                         Собеседования
                     </a>
-                    <a href="salary.html" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
+                    <a href="salary" class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1">
                         <i data-feather="credit-card" class="w-4 h-4"></i>
                         Расчет зарплат
                     </a>
@@ -220,8 +220,8 @@
     <custom-footer></custom-footer>
     
     <!-- Components -->
-    <script src="components/navbar.js"></script>
-    <script src="components/footer.js"></script>
+    <script src="components/navbar"></script>
+    <script src="components/footer"></script>
     
     <script>
         feather.replace();
