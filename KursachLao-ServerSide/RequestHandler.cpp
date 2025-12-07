@@ -24,7 +24,7 @@ void RequestHandler::addRouteHandler(const std::string& path,
     routeHandlers_[path] = handler;
 }
 
-void RequestHandler::setupDefaultRoutes() {
+void RequestHandler::setupDefaultRoutes() { //Придумать какую-нибудь штуку для замены стандартного обработчика
     // Обработчик для корневого пути
     /*addRouteHandler("/", [](const http::request<http::string_body>& req, http::response<http::string_body>& res) {
         res.set(http::field::content_type, "text/plain");
@@ -33,6 +33,8 @@ void RequestHandler::setupDefaultRoutes() {
     // Обработчик для /status
     addRouteHandler("/status", [](const http::request<http::string_body>& req, http::response<http::string_body>& res) {
         res.set(http::field::content_type, "application/json");
+        res.result(http::status::ok);
+        res.set(http::field::cache_control, "no-cache, must-revalidate");
         res.body() = R"({"status": "ok", "service": "modular_http_server"})";
         });
 }

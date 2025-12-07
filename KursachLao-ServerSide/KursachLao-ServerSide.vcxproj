@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClInclude Include="BaseModule.h" />
     <ClInclude Include="FileCache.h" />
+    <ClInclude Include="Session.h" />
     <ClInclude Include="macros.h" />
     <ClInclude Include="ModuleRegistry.h" />
     <ClInclude Include="IModule.h" />

@@ -40,10 +40,15 @@ public:
     void handleRequest(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
         http::response<http::string_body> res{ http::status::not_found, req.version() };
         res.set(http::field::server, "ModularServer");
-        res.keep_alive(true/*req.keep_alive()*/);
+        // FIXED: Uncomment и используй req.keep_alive() — mirror client
+        res.keep_alive(req.keep_alive());
+        // NEW: Explicit Connection header для force keep-alive (если !req.keep_alive(), но для MVP — всегда true для 1.1)
+        if (req.version() >= 11 && res.keep_alive()) {
+            res.set(http::field::connection, "keep-alive");
+        }
 
         std::string target = std::string(req.target());
-        auto [path, query] = parseTarget(target);  // NEW: Парсим path и query
+        auto [path, query] = parseTarget(target);
 
         // UPDATED: Проверяем wildcard /* для динамического поиска в кэше (только по path!)
         auto wildcard_it = routeHandlers_.find("/*");
@@ -52,6 +57,7 @@ public:
             auto cached_file = file_cache_->get_file(path);  // Ищем по чистому path
             if (cached_file) {
                 res.set(http::field::content_type, cached_file->mime_type.c_str());
+                res.set(http::field::cache_control, "public, max-age=300");
                 res.body() = std::move(cached_file->content);
                 res.result(http::status::ok);
                 res.prepare_payload();
@@ -66,18 +72,20 @@ public:
             // NEW: Передаём query в handler (если lambda ожидает — расширь signature)
             // Для MVP: если handler статический, игнорируем query
             // Пример: it->second(req, res, query);  // Если изменишь lambda на void(const sRequest&, sResponce&, const std::string& query)
-            it->second(req, res);  // Пока без query (для /test, /status)
+            it->second(req, res); 
         }
         else if (target.find("../") != std::string::npos) {
             res.set(http::field::content_type, "text/html");
             file_cache_->refresh_file("/attention");
             const auto& cached = file_cache_->get_file("/attention");
+            res.set(http::field::cache_control, "public, max-age=300");
             res.body() = cached.value().content;
         }
         else {
             res.set(http::field::content_type, "text/html");
             file_cache_->refresh_file("/errorNotFound");
             const auto& cached = file_cache_->get_file("/errorNotFound");
+            res.set(http::field::cache_control, "public, max-age=300");
             res.body() = cached.value().content;
         }
         res.prepare_payload();

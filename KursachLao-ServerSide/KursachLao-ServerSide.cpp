@@ -3,18 +3,17 @@
 #include "ModuleRegistry.h"
 #include "FileCache.h"
 #include "macros.h"
+#include "Session.h"
+
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/thread.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
+
 #include <iostream>
 #include <memory>
 #include <fstream>
 #include <sstream>
-namespace po = boost::program_options;
-namespace net = boost::asio;
-using tcp = boost::asio::ip::tcp;
-namespace fs = std::filesystem;
 
 void printConnectionInfo(tcp::socket& socket) {
     try {
@@ -62,8 +61,7 @@ int main(int argc, char* argv[]) {
         ("port,p", po::value<int>(&port)->default_value(8080),
             "Port to listen on")
         ("directory,d", po::value<std::string>(&directory)->default_value("static"),
-            "Path to static files")
-        ;
+            "Path to static files");
 
     po::variables_map vm;
     try {
@@ -83,8 +81,6 @@ int main(int argc, char* argv[]) {
         // Проверка существования директории
         if (!fs::exists(directory)) {
             std::cerr << "Warning: directory '" << directory << "' does not exist\n";
-            // Можно создать директорию:
-            // fs::create_directories(directory);
         }
     }
     catch (const po::error& e) {
@@ -99,43 +95,44 @@ int main(int argc, char* argv[]) {
         << " Port: " << port << "\n"
         << " Directory: " << directory << "\n\n";
 
-    // Остальная часть вашего кода...
     ModuleRegistry registry;
     auto* cacheModule = registry.registerModule<FileCache>(directory.c_str(), true, 100);
     auto* requestModule = registry.registerModule<RequestHandler>();
     CreateNewHandlers(requestModule, directory);
+
     registry.initializeAll();
 
     static_cast<RequestHandler*>(requestModule)->setFileCache(cacheModule);
 
     try {
-        bool close = false;
-        beast::error_code ec;
-        beast::flat_buffer buffer;
         auto const net_address = net::ip::make_address(address);
         auto const net_port = static_cast<unsigned short>(port);
-        net::io_context ioc{ 1 };
+        net::io_context ioc;  // FIXED: Убрал {1} — теперь valid ctor, service_ init'ится правильно
         tcp::acceptor acceptor{ ioc, {net_address, net_port} };
         std::cout << "Server started on http://" << address << ":" << port << std::endl;
 
-        for (;;) {
-            auto socket = boost::make_shared<tcp::socket>(ioc);
-            LambdaSenders::send_lambda<tcp::socket> lambda{ *socket.get(), close, ec };
-            acceptor.accept(*socket);
-            printConnectionInfo(*socket); //FIXME: Для получения 1 страницы он делает 6 запросов. Какого хрена? 
-            http::request<http::string_body> req;
-            http::read(*socket.get(), buffer, req, ec);
-            if (ec == http::error::end_of_stream) continue;
-            if (ec) break;
-            requestModule->handleRequest(std::move(req), lambda);
-            if (ec) break;
-            if (close) continue;
-        }
+        // UPDATED: Do_accept с std::function для safe recursive (avoid self-ref UB)
+        std::function<void()> do_accept_func = [&acceptor, &ioc, requestModule, &do_accept_func]() {  // NEW: Explicit function, self-capture by ref
+            auto socket = std::make_shared<tcp::socket>(ioc);
+            acceptor.async_accept(*socket,
+                [socket_ptr = socket, &do_accept_func, requestModule](beast::error_code ec) {
+                    if (!ec) {
+                        printConnectionInfo(*socket_ptr);
+                        std::make_shared<session>(std::move(*socket_ptr), requestModule)->run();
+                    }
+                    else {
+                        std::cerr << "Accept error: " << ec.message() << std::endl;
+                    }
+                    do_accept_func();  // Рекурсия via function call (safe)
+                });
+            };
+
+        do_accept_func();
+        ioc.run();  // Блокирует, обрабатывает все async
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-
     return 0;
 }
