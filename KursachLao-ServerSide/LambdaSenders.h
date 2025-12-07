@@ -65,26 +65,6 @@ public:
                 });
         }
     };
-
-    /*template<class Stream>
-    auto make_async_sender(Stream& stream) {
-        return[&stream]<bool isRequest, class Body, class Fields>
-            (http::message<isRequest, Body, Fields> && msg)
-            -> boost::asio::awaitable<void> {
-
-            bool close = msg.need_eof();
-            co_await http::async_write(stream, msg, boost::asio::use_awaitable);
-
-            if (close) {
-                co_await stream.async_shutdown(boost::asio::use_awaitable);
-            }
-        };
-    };*/
-    
-
-    //// Обработчик HTTP запроса - всегда возвращает "Hello World!"
-    //template<class Body, class Allocator, class Send>
-    //static void handle_request(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send);
 };
 
 

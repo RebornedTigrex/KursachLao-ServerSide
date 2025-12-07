@@ -4,17 +4,23 @@
 #include "FileCache.h"
 #include "macros.h"
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/thread.hpp>
+#include <boost/asio/spawn.hpp>
+#include <boost/asio/strand.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
+#include <boost/thread.hpp>
 #include <iostream>
 #include <memory>
 #include <fstream>
 #include <sstream>
+#include <atomic>
+
 namespace po = boost::program_options;
 namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
 namespace fs = std::filesystem;
+namespace beast = boost::beast;
 
 void printConnectionInfo(tcp::socket& socket) {
     try {
@@ -32,6 +38,7 @@ void printConnectionInfo(tcp::socket& socket) {
 }
 
 void CreateNewHandlers(RequestHandler* module, std::string staticFolder) {
+    // Теперь обработчики должны работать через новый интерфейс
     module->addRouteHandler("/test", [](const sRequest& req, sResponce& res) {
         if (req.method() != http::verb::get) {
             res.result(http::status::method_not_allowed);
@@ -44,14 +51,225 @@ void CreateNewHandlers(RequestHandler* module, std::string staticFolder) {
         res.result(http::status::ok);
         });
 
-    module->addRouteHandler("/*", [](const sRequest& req, sResponce& res) {});
+    // Обработчик для wildcard должен использовать serveStaticFile
+    // Если вы хотите использовать новый функционал, добавьте:
+    module->addRouteHandler("/api/data", [](const sRequest& req, sResponce& res) {
+        // Новый обработчик с query параметрами
+        res.set(http::field::content_type, "application/json");
+        res.body() = R"({"status": "success", "message": "API endpoint"})";
+        res.result(http::status::ok);
+        });
+
+    // Wildcard обработчик для статических файлов остается
+    module->addRouteHandler("/*", [](const sRequest& req, sResponce& res) {
+        // Обработка будет в serveStaticFile
+        });
 }
+
+// Сессия для обработки соединения
+class Session : public std::enable_shared_from_this<Session> {
+public:
+    Session(tcp::socket socket, RequestHandler* handler, FileCache* cache)
+        : socket_(std::move(socket))
+        , handler_(handler)
+        , cache_(cache)
+        , strand_(socket_.get_executor())  // Прямая инициализация strand из executor
+    {
+    }
+
+    void start() {
+        // Запускаем асинхронную обработку в корутине
+        net::spawn(strand_,
+            [self = shared_from_this()](net::yield_context yield) {
+                self->do_session(yield);
+            });
+    }
+
+private:
+    void do_session(net::yield_context yield) {
+        beast::error_code ec;
+        beast::flat_buffer buffer;
+
+        for (;;) {
+            // Асинхронное чтение запроса
+            http::request<http::string_body> req;
+            http::async_read(socket_, buffer, req, yield[ec]);
+
+            if (ec == http::error::end_of_stream || ec == net::error::eof) {
+                // Нормальное закрытие соединения
+                break;
+            }
+            if (ec) {
+                std::cerr << "Read error: " << ec.message() << std::endl;
+                break;
+            }
+
+            // Обработка запроса с помощью LambdaSenders
+            bool close = false;
+            beast::error_code send_ec;
+
+            // Создаем лямбду для отправки
+            LambdaSenders::send_lambda<tcp::socket> lambda(socket_, close, send_ec);
+
+            // Обрабатываем запрос
+            handler_->handleRequest(std::move(req), lambda);
+
+            if (send_ec) {
+                std::cerr << "Send error: " << send_ec.message() << std::endl;
+                break;
+            }
+
+            // Если нужно закрыть соединение
+            if (close) {
+                break;
+            }
+
+            // Если запрос не требует keep-alive, выходим
+            if (req.keep_alive()) {
+                // Подготавливаем буфер для следующего запроса
+                req = {};
+            }
+            else {
+                break;
+            }
+        }
+
+        // Корректное закрытие сокета
+        socket_.shutdown(tcp::socket::shutdown_send, ec);
+        if (ec && ec != net::error::not_connected) {
+            std::cerr << "Shutdown error: " << ec.message() << std::endl;
+        }
+    }
+
+    tcp::socket socket_;
+    RequestHandler* handler_;
+    FileCache* cache_;
+    net::strand<tcp::socket::executor_type> strand_;  // Правильный тип strand
+};
+
+// Асинхронный сервер
+class AsyncServer {
+public:
+    AsyncServer(const tcp::endpoint& endpoint,
+        RequestHandler* handler,
+        FileCache* cache,
+        int thread_count = 1)
+        : ioc_()
+        , acceptor_(ioc_)
+        , handler_(handler)
+        , cache_(cache)
+        , thread_count_(thread_count)
+    {
+        beast::error_code ec;
+
+        // Открываем acceptor
+        acceptor_.open(endpoint.protocol(), ec);
+        if (ec) {
+            throw std::runtime_error("Failed to open acceptor: " + ec.message());
+        }
+
+        // Устанавливаем опции
+        acceptor_.set_option(net::socket_base::reuse_address(true), ec);
+        if (ec) {
+            std::cerr << "Warning: failed to set reuse address: " << ec.message() << std::endl;
+        }
+
+        // Привязываемся к endpoint
+        acceptor_.bind(endpoint, ec);
+        if (ec) {
+            throw std::runtime_error("Failed to bind: " + ec.message());
+        }
+
+        // Начинаем слушать
+        acceptor_.listen(net::socket_base::max_listen_connections, ec);
+        if (ec) {
+            throw std::runtime_error("Failed to listen: " + ec.message());
+        }
+    }
+
+    void run() {
+        // Запускаем accept
+        do_accept();
+
+        // Запускаем потоки для обработки
+        if (thread_count_ > 1) {
+            threads_.reserve(thread_count_ - 1);
+            for (int i = 1; i < thread_count_; ++i) {
+                threads_.emplace_back([this]() {
+                    try {
+                        ioc_.run();
+                    }
+                    catch (const std::exception& e) {
+                        std::cerr << "Thread error: " << e.what() << std::endl;
+                    }
+                    });
+            }
+        }
+
+        // Основной поток также обрабатывает запросы
+        try {
+            ioc_.run();
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Main thread error: " << e.what() << std::endl;
+        }
+    }
+
+    void stop() {
+        // Сначала останавливаем acceptor
+        beast::error_code ec;
+        acceptor_.close(ec);
+        if (ec) {
+            std::cerr << "Error closing acceptor: " << ec.message() << std::endl;
+        }
+
+        // Затем останавливаем io_context
+        ioc_.stop();
+
+        // Ждем завершения всех потоков
+        for (auto& thread : threads_) {
+            if (thread.joinable()) {
+                thread.join();
+            }
+        }
+    }
+
+private:
+    void do_accept() {
+        acceptor_.async_accept(
+            [this](beast::error_code ec, tcp::socket socket) {
+                if (!ec) {
+                    // Создаем новую сессию для соединения
+                    std::make_shared<Session>(
+                        std::move(socket), handler_, cache_
+                    )->start();
+
+                    // Принимаем следующее соединение
+                    do_accept();
+                }
+                else {
+                    // Игнорируем operation_aborted (при остановке сервера)
+                    if (ec != net::error::operation_aborted) {
+                        std::cerr << "Accept error: " << ec.message() << std::endl;
+                    }
+                }
+            });
+    }
+
+    net::io_context ioc_;
+    tcp::acceptor acceptor_;
+    RequestHandler* handler_;
+    FileCache* cache_;
+    std::vector<std::thread> threads_;
+    int thread_count_;
+};
 
 int main(int argc, char* argv[]) {
     // Объявление переменных для параметров
     std::string address;
     int port;
     std::string directory;
+    int threads;
 
     // Настройка парсера аргументов
     po::options_description desc("Available options");
@@ -63,6 +281,9 @@ int main(int argc, char* argv[]) {
             "Port to listen on")
         ("directory,d", po::value<std::string>(&directory)->default_value("static"),
             "Path to static files")
+        ("threads,t", po::value<int>(&threads)->default_value(
+            std::max(1, (int)std::thread::hardware_concurrency())),
+            "Number of worker threads")
         ;
 
     po::variables_map vm;
@@ -80,11 +301,14 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
 
+        if (threads < 1) {
+            std::cerr << "Error: threads must be at least 1\n";
+            return EXIT_FAILURE;
+        }
+
         // Проверка существования директории
         if (!fs::exists(directory)) {
             std::cerr << "Warning: directory '" << directory << "' does not exist\n";
-            // Можно создать директорию:
-            // fs::create_directories(directory);
         }
     }
     catch (const po::error& e) {
@@ -97,9 +321,10 @@ int main(int argc, char* argv[]) {
     std::cout << "Server configuration:\n"
         << " Address: " << address << "\n"
         << " Port: " << port << "\n"
-        << " Directory: " << directory << "\n\n";
+        << " Directory: " << directory << "\n"
+        << " Threads: " << threads << "\n\n";
 
-    // Остальная часть вашего кода...
+    // Инициализация модулей
     ModuleRegistry registry;
     auto* cacheModule = registry.registerModule<FileCache>(directory.c_str(), true, 100);
     auto* requestModule = registry.registerModule<RequestHandler>();
@@ -109,28 +334,22 @@ int main(int argc, char* argv[]) {
     static_cast<RequestHandler*>(requestModule)->setFileCache(cacheModule);
 
     try {
-        bool close = false;
-        beast::error_code ec;
-        beast::flat_buffer buffer;
         auto const net_address = net::ip::make_address(address);
         auto const net_port = static_cast<unsigned short>(port);
-        net::io_context ioc{ 1 };
-        tcp::acceptor acceptor{ ioc, {net_address, net_port} };
-        std::cout << "Server started on http://" << address << ":" << port << std::endl;
+        tcp::endpoint endpoint{ net_address, net_port };
 
-        for (;;) {
-            auto socket = boost::make_shared<tcp::socket>(ioc);
-            LambdaSenders::send_lambda<tcp::socket> lambda{ *socket.get(), close, ec };
-            acceptor.accept(*socket);
-            printConnectionInfo(*socket); //FIXME: Для получения 1 страницы он делает 6 запросов. Какого хрена? 
-            http::request<http::string_body> req;
-            http::read(*socket.get(), buffer, req, ec);
-            if (ec == http::error::end_of_stream) continue;
-            if (ec) break;
-            requestModule->handleRequest(std::move(req), lambda);
-            if (ec) break;
-            if (close) continue;
-        }
+        std::cout << "Server starting on http://" << address << ":" << port
+            << " with " << threads << " threads" << std::endl;
+
+        // Создаем и запускаем асинхронный сервер
+        AsyncServer server(endpoint,
+            static_cast<RequestHandler*>(requestModule),
+            static_cast<FileCache*>(cacheModule),
+            threads);
+
+        // Запускаем сервер
+        server.run();
+
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

@@ -19,13 +19,8 @@ void RequestHandler::onShutdown() {
     std::cout << "RequestHandler shutdown" << std::endl;
 }
 
-void RequestHandler::addRouteHandler(const std::string& path,
-    std::function<void(const http::request<http::string_body>&, http::response<http::string_body>&)> handler) {
-    routeHandlers_[path] = handler;
-}
-
 void RequestHandler::setupDefaultRoutes() {
-    // Обработчик для корневого пути
+    // Обработчик для корневого пути //TODO: Сделать проверку добавленных обработчиков. Если стандартный обработчик был добавлен, тогда бы скипаем добавление этого responce.
     /*addRouteHandler("/", [](const http::request<http::string_body>& req, http::response<http::string_body>& res) {
         res.set(http::field::content_type, "text/plain");
         res.body() = "Hello from RequestHandler module!";
