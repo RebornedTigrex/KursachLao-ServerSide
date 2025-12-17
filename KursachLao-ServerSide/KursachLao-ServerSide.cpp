@@ -1,9 +1,12 @@
-п»ї#include "LambdaSenders.h"
+#include "LambdaSenders.h"
 #include "RequestHandler.h"
 #include "ModuleRegistry.h"
 #include "FileCache.h"
 #include "macros.h"
 #include "Session.h"
+
+#include "DatabaseModule.h"
+#include "ApiProcessor.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/thread.hpp>
@@ -30,6 +33,63 @@ void printConnectionInfo(tcp::socket& socket) {
     }
 }
 
+void CreateAPIHandlers(RequestHandler* module, ApiProcessor* apiProcessor) {
+    //return; // TODO: Добавить Api обработчики
+    // Регистрация API-роутов через лямбды, которые вызывают методы ApiProcessor
+    module->addRouteHandler("/api/data", [apiProcessor](const sRequest& req, sResponce& res) {
+        apiProcessor->handleGetAllData(req, res);
+        });
+
+    module->addRouteHandler("/api/employees", [apiProcessor](const sRequest& req, sResponce& res) {
+        if (req.method() == http::verb::post) {
+            apiProcessor->handleAddEmployee(req, res);
+        }
+        else if (req.method() == http::verb::get) {
+            apiProcessor->handleGetAllData(req, res); // Можно временно использовать как список
+        }
+        else {
+            res.result(http::status::method_not_allowed);
+            res.body() = "Allowed: GET, POST";
+        }
+        });
+
+    module->addRouteHandler("/api/employees/\\d+", [apiProcessor](const sRequest& req, sResponce& res) {
+        if (req.method() == http::verb::put) {
+            apiProcessor->handleUpdateEmployee(req, res);
+        }
+        else {
+            res.result(http::status::method_not_allowed);
+        }
+        });
+
+    module->addRouteHandler("/api/hours/\\d+", [apiProcessor](const sRequest& req, sResponce& res) {
+        if (req.method() == http::verb::post) {
+            apiProcessor->handleAddHours(req, res);
+        }
+        else {
+            res.result(http::status::method_not_allowed);
+        }
+        });
+
+    module->addRouteHandler("/api/penalties/\\d+", [apiProcessor](const sRequest& req, sResponce& res) {
+        if (req.method() == http::verb::post) {
+            apiProcessor->handleAddPenalty(req, res);
+        }
+        else {
+            res.result(http::status::method_not_allowed);
+        }
+        });
+
+    module->addRouteHandler("/api/bonuses/\\d+", [apiProcessor](const sRequest& req, sResponce& res) {
+        if (req.method() == http::verb::post) {
+            apiProcessor->handleAddBonus(req, res);
+        }
+        else {
+            res.result(http::status::method_not_allowed);
+        }
+        });
+}
+
 void CreateNewHandlers(RequestHandler* module, std::string staticFolder) {
     module->addRouteHandler("/test", [](const sRequest& req, sResponce& res) {
         if (req.method() != http::verb::get) {
@@ -47,12 +107,12 @@ void CreateNewHandlers(RequestHandler* module, std::string staticFolder) {
 }
 
 int main(int argc, char* argv[]) {
-    // РћР±СЉСЏРІР»РµРЅРёРµ РїРµСЂРµРјРµРЅРЅС‹С… РґР»СЏ РїР°СЂР°РјРµС‚СЂРѕРІ
+    // Объявление переменных для параметров
     std::string address;
     int port;
     std::string directory;
 
-    // РќР°СЃС‚СЂРѕР№РєР° РїР°СЂСЃРµСЂР° Р°СЂРіСѓРјРµРЅС‚РѕРІ
+    // Настройка парсера аргументов
     po::options_description desc("Available options");
     desc.add_options()
         ("help,h", "Show help")
@@ -78,7 +138,7 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
 
-        // РџСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РґРёСЂРµРєС‚РѕСЂРёРё
+        // Проверка существования директории
         if (!fs::exists(directory)) {
             std::cerr << "Warning: directory '" << directory << "' does not exist\n";
         }
@@ -88,30 +148,46 @@ int main(int argc, char* argv[]) {
         std::cerr << desc << "\n";
         return EXIT_FAILURE;
     }
+    std::cout << "Console CP: " << GetConsoleCP() << std::endl;
+    std::cout << "Console Output CP: " << GetConsoleOutputCP() << std::endl;
+    std::cout << "ACP: " << GetACP() << std::endl;
+    std::cout << "OEMCP: " << GetOEMCP() << std::endl;
 
-    // Р’С‹РІРѕРґ РєРѕРЅС„РёРіСѓСЂР°С†РёРё
+    // Вывод конфигурации
     std::cout << "Server configuration:\n"
         << " Address: " << address << "\n"
         << " Port: " << port << "\n"
         << " Directory: " << directory << "\n\n";
+//////////////////////////////////////////////////////////
+    net::io_context ioc;
+
+    const char* databaseStr = "dbname=postgres user=postgres password=postgres host=127.0.0.1 port=54855";//TODO: Перенести хардкод в параметры
 
     ModuleRegistry registry;
     auto* cacheModule = registry.registerModule<FileCache>(directory.c_str(), true, 100);
     auto* requestModule = registry.registerModule<RequestHandler>();
+    auto* dbModule = registry.registerModule<DatabaseModule>(ioc, databaseStr);
+
+    ApiProcessor apiProcessor(dbModule); //TODO: Не совсем подходит моей идеологии управления жизнью через реестр модулей. Однако это по сути обёртка
+
+    CreateAPIHandlers(requestModule, &apiProcessor);
+
     CreateNewHandlers(requestModule, directory);
 
     registry.initializeAll();
 
     static_cast<RequestHandler*>(requestModule)->setFileCache(cacheModule);
 
+
+///////////////////////////////////////////////////////////
+
     try {
         auto const net_address = net::ip::make_address(address);
         auto const net_port = static_cast<unsigned short>(port);
-        net::io_context ioc;  // FIXED: РЈР±СЂР°Р» {1} вЂ” С‚РµРїРµСЂСЊ valid ctor, service_ init'РёС‚СЃСЏ РїСЂР°РІРёР»СЊРЅРѕ
         tcp::acceptor acceptor{ ioc, {net_address, net_port} };
         std::cout << "Server started on http://" << address << ":" << port << std::endl;
 
-        // UPDATED: Do_accept СЃ std::function РґР»СЏ safe recursive (avoid self-ref UB)
+        // UPDATED: Do_accept с std::function для safe recursive (avoid self-ref UB)
         std::function<void()> do_accept_func = [&acceptor, &ioc, requestModule, &do_accept_func]() {  // NEW: Explicit function, self-capture by ref
             auto socket = std::make_shared<tcp::socket>(ioc);
             acceptor.async_accept(*socket,
@@ -123,12 +199,12 @@ int main(int argc, char* argv[]) {
                     else {
                         std::cerr << "Accept error: " << ec.message() << std::endl;
                     }
-                    do_accept_func();  // Р РµРєСѓСЂСЃРёСЏ via function call (safe)
+                    do_accept_func();  // Рекурсия via function call (safe)
                 });
             };
 
         do_accept_func();
-        ioc.run();  // Р‘Р»РѕРєРёСЂСѓРµС‚, РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РІСЃРµ async
+        ioc.run();  // Блокирует, обрабатывает все async
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

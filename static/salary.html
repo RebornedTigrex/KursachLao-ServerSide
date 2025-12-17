@@ -1,6 +1,8 @@
+<!-- salary.html - Updated to use fetchAllData, standardize bonus 'note', add input validation -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="/favicon" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Harmony Hub | Salary</title>
@@ -46,11 +48,11 @@
                     <input type="hidden" id="salary-penalty-employee-id">
                     <div>
                         <label for="salary-penalty-reason" class="block text-sm font-medium text-gray-700">Причина</label>
-                        <input id="salary-penalty-reason" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input id="salary-penalty-reason" required minlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div>
                         <label for="salary-penalty-amount" class="block text-sm font-medium text-gray-700">Сумма</label>
-                        <input id="salary-penalty-amount" type="number" step="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input id="salary-penalty-amount" type="number" step="0.01" min="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div class="flex justify-end space-x-2">
                         <button type="button" id="cancel-salary-penalty" class="px-4 py-2 bg-gray-200 rounded-md">Отмена</button>
@@ -71,11 +73,11 @@
                     <input type="hidden" id="salary-bonus-employee-id">
                     <div>
                         <label for="salary-bonus-note" class="block text-sm font-medium text-gray-700">Примечание</label>
-                        <input id="salary-bonus-note" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input id="salary-bonus-note" required minlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div>
                         <label for="salary-bonus-amount" class="block text-sm font-medium text-gray-700">Сумма</label>
-                        <input id="salary-bonus-amount" type="number" step="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input id="salary-bonus-amount" type="number" step="0.01" min="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div class="flex justify-end space-x-2">
                         <button type="button" id="cancel-salary-bonus" class="px-4 py-2 bg-gray-200 rounded-md">Отмена</button>
@@ -105,42 +107,42 @@
             
             let loadingPromise = null;
 
-            async function loadSalaries() {
+            async function loadSalaries(force = false) {
                 if (loadingPromise) return loadingPromise;
                 
                 loadingPromise = (async () => {
                     try {
-                const employees = await window.dataCache.getEmployees();
-                tbody.innerHTML = '';
-                employees
-                    .filter(emp => emp.status === 'hired')
-                    .forEach(emp => {
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-gray-50';
+                        const { employees } = await window.dataCache.fetchAllData(force);
+                        tbody.innerHTML = '';
+                        employees
+                            .filter(emp => emp.status === 'hired')
+                            .forEach(emp => {
+                                const row = document.createElement('tr');
+                                row.className = 'hover:bg-gray-50';
 
-                        const bonuses = emp.totalBonuses || 0;
-                        const deductions = emp.totalPenalties || 0;
-                        const netSalary = emp.salary + bonuses - deductions;
+                                const bonuses = emp.totalBonuses || 0;
+                                const deductions = emp.totalPenalties || 0;
+                                const netSalary = emp.salary + bonuses - deductions;
 
-                        row.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">$${emp.salary.toLocaleString()}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-green-600">+$${bonuses.toLocaleString()}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-red-600">-$${deductions.toLocaleString()}</td>
-                            <td class="px-6 py-4 whitespace-nowrap font-semibold">$${netSalary.toLocaleString()}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <button data-employee-id="${emp.id}" class="ml-2 text-red-500 hover:text-red-700 salary-add-penalty">
-                                    <i data-feather="minus-circle" class="w-4 h-4"></i>
-                                </button>
-                                <button data-employee-id="${emp.id}" class="ml-2 text-green-500 hover:text-green-700 salary-add-bonus">
-                                    <i data-feather="plus-circle" class="w-4 h-4"></i>
-                                </button>
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                    });
+                                row.innerHTML = `
+                                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">$${emp.salary.toLocaleString()}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-green-600">+$${bonuses.toLocaleString()}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-red-600">-$${deductions.toLocaleString()}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap font-semibold">$${netSalary.toLocaleString()}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <button data-employee-id="${emp.id}" class="ml-2 text-red-500 hover:text-red-700 salary-add-penalty">
+                                            <i data-feather="minus-circle" class="w-4 h-4"></i>
+                                        </button>
+                                        <button data-employee-id="${emp.id}" class="ml-2 text-green-500 hover:text-green-700 salary-add-bonus">
+                                            <i data-feather="plus-circle" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                `;
+                                tbody.appendChild(row);
+                            });
 
-                feather.replace();
+                        feather.replace();
                     } finally {
                         loadingPromise = null;
                     }
@@ -169,9 +171,10 @@
             document.getElementById('close-salary-bonus').addEventListener('click', () => bonusModal.classList.add('hidden'));
             document.getElementById('cancel-salary-bonus').addEventListener('click', () => bonusModal.classList.add('hidden'));
 
-            // Submit penalty
+            // Submit penalty with validation
             document.getElementById('salary-add-penalty-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (!e.target.checkValidity()) return; // Browser validation
                 const employeeId = parseInt(document.getElementById('salary-penalty-employee-id').value, 10);
                 const penaltyData = {
                     reason: document.getElementById('salary-penalty-reason').value,
@@ -181,12 +184,13 @@
                 penaltyModal.classList.add('hidden');
                 successNotification.classList.remove('hidden');
                 setTimeout(() => successNotification.classList.add('hidden'), 2000);
-                loadSalaries();
+                loadSalaries(true); // Force refresh
             });
 
-            // Submit bonus
+            // Submit bonus with validation (standardized to 'note')
             document.getElementById('salary-add-bonus-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (!e.target.checkValidity()) return;
                 const employeeId = parseInt(document.getElementById('salary-bonus-employee-id').value, 10);
                 const bonusData = {
                     note: document.getElementById('salary-bonus-note').value,
@@ -196,11 +200,11 @@
                 bonusModal.classList.add('hidden');
                 successNotification.classList.remove('hidden');
                 setTimeout(() => successNotification.classList.add('hidden'), 2000);
-                loadSalaries();
+                loadSalaries(true);
             });
             
             // Listen for external cache updates and refresh
-            window.addEventListener('dataCache:updated', loadSalaries);
+            window.addEventListener('dataCache:updated', () => loadSalaries(true));
 
             // Initial load
             loadSalaries();

@@ -1,6 +1,8 @@
+<!-- employees.html - Updated to use fetchAllData, standardize bonus 'note', add validation, fix inconsistencies -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="/favicon" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Harmony Hub | Employees</title>
@@ -61,7 +63,7 @@
                 <form id="add-employee-form" class="space-y-4">
                     <div>
                         <label for="fullname" class="block text-sm font-medium text-gray-700 mb-1">Полное имя</label>
-                        <input type="text" id="fullname" name="fullname" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="fullname" name="fullname" required minlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
                     <div>
@@ -75,7 +77,7 @@
 
                     <div>
                         <label for="salary" class="block text-sm font-medium text-gray-700 mb-1">Зарплата</label>
-                        <input type="number" id="salary" name="salary" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="number" id="salary" name="salary" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
                     <div class="flex justify-end space-x-3 pt-4">
@@ -99,11 +101,11 @@
                     <input type="hidden" id="penalty-employee-id">
                     <div>
                         <label for="penalty-reason" class="block text-sm font-medium text-gray-700">Причина</label>
-                        <input type="text" id="penalty-reason" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input type="text" id="penalty-reason" required minlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div>
                         <label for="penalty-amount" class="block text-sm font-medium text-gray-700">Сумма</label>
-                        <input type="number" id="penalty-amount" required class="w-full px-3 py-2 border border-gray-300 rounded-md" value="200">
+                        <input type="number" id="penalty-amount" required min="0.01" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="200">
                     </div>
                     <button type="submit" class="w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">
                         Добавить штраф
@@ -125,12 +127,12 @@
                 <form id="add-bonus-form" class="space-y-4">
                     <input type="hidden" id="bonus-employee-id">
                     <div>
-                        <label for="bonus-reason" class="block text-sm font-medium text-gray-700">Причина</label>
-                        <input type="text" id="bonus-reason" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <label for="bonus-note" class="block text-sm font-medium text-gray-700">Примечание</label> <!-- Standardized to 'note' -->
+                        <input type="text" id="bonus-note" required minlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div>
                         <label for="bonus-amount" class="block text-sm font-medium text-gray-700">Сумма</label>
-                        <input type="number" id="bonus-amount" required class="w-full px-3 py-2 border border-gray-300 rounded-md" value="500">
+                        <input type="number" id="bonus-amount" required min="0.01" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="500">
                     </div>
                     <button type="submit" class="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">
                         Добавить бонус
@@ -164,46 +166,60 @@
                 el.classList.add('bg-blue-500', 'text-white');
             });
 
-            // Load and display employees
-            const employees = await window.dataCache.getEmployees();
-            const tbody = document.getElementById('employees-table-body');
-            tbody.innerHTML = '';
+            let employeesLoadingPromise = null;
+        
+            async function reloadEmployeeTable(force = false) {
+                if (employeesLoadingPromise) return employeesLoadingPromise;
+                
+                employeesLoadingPromise = (async () => {
+                    try {
+                        const { employees } = await window.dataCache.fetchAllData(force);
+                        const tbody = document.getElementById('employees-table-body');
+                        tbody.innerHTML = '';
 
-            employees
-                .filter(emp => statusFilter === 'all' || emp.status === statusFilter)
-                .forEach(emp => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
+                        employees
+                            .filter(emp => statusFilter === 'all' || emp.status === statusFilter)
+                            .forEach(emp => {
+                                const row = document.createElement('tr');
+                                row.className = 'hover:bg-gray-50';
 
-                    const statusColors = {
-                        'hired': 'bg-green-100 text-green-800',
-                        'fired': 'bg-red-100 text-red-800',
-                        'interview': 'bg-blue-100 text-blue-800'
-                    };
+                                const statusColors = {
+                                    'hired': 'bg-green-100 text-green-800',
+                                    'fired': 'bg-red-100 text-red-800',
+                                    'interview': 'bg-blue-100 text-blue-800'
+                                };
 
-                    const salaryClass = emp.status !== 'hired' ? 'text-gray-400' : '';
+                                const salaryClass = emp.status !== 'hired' ? 'text-gray-400' : '';
 
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs rounded-full ${statusColors[emp.status]}">${emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap ${salaryClass}">$${emp.salary.toLocaleString()}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span>${emp.penalties}</span>
-                            <button data-employee-id="${emp.id}" class="ml-2 text-red-500 hover:text-red-700 add-penalty">
-                                <i data-feather="plus" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span>${emp.bonuses}</span>
-                            <button data-employee-id="${emp.id}" class="ml-2 text-green-500 hover:text-green-700 add-bonus">
-                                <i data-feather="plus" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-`;
-                    tbody.appendChild(row);
-                });
+                                row.innerHTML = `
+                                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full ${statusColors[emp.status]}">${emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap ${salaryClass}">$${emp.salary.toLocaleString()}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span>${emp.penalties}</span>
+                                        <button data-employee-id="${emp.id}" class="ml-2 text-red-500 hover:text-red-700 add-penalty">
+                                            <i data-feather="plus" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span>${emp.bonuses}</span>
+                                        <button data-employee-id="${emp.id}" class="ml-2 text-green-500 hover:text-green-700 add-bonus">
+                                            <i data-feather="plus" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        
+                        feather.replace();
+                    } finally {
+                        employeesLoadingPromise = null;
+                    }
+                })();
+                return employeesLoadingPromise;
+            }
 
             // Modal handling
             const modal = document.getElementById('add-employee-modal');
@@ -224,6 +240,7 @@
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (!form.checkValidity()) return;
 
                 const formData = {
                     fullname: document.getElementById('fullname').value,
@@ -236,182 +253,99 @@
                 // Show loading state
                 const submitBtn = form.querySelector('button[type="submit"]');
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = 'Adding...';
+                submitBtn.textContent = 'Adding...';
 
-                // Simulate API delay
-                setTimeout(async () => {
-                    await window.dataCache.addEmployee(formData);
+                await window.dataCache.addEmployee(formData);
 
-                    // Reset form
-                    form.reset();
-                    modal.classList.add('hidden');
+                // Reset form
+                form.reset();
+                modal.classList.add('hidden');
 
-                    // Show success notification
-                    successNotification.classList.remove('hidden');
-                    setTimeout(() => {
-                        successNotification.classList.add('hidden');
-                    }, 3000);
+                // Show success notification
+                successNotification.classList.remove('hidden');
+                setTimeout(() => {
+                    successNotification.classList.add('hidden');
+                }, 3000);
 
-                    // Reload employees
-                    const employees = await window.dataCache.getEmployees();
-                    const tbody = document.getElementById('employees-table-body');
-                    tbody.innerHTML = '';
+                // Reload table
+                reloadEmployeeTable(true);
 
-                    employees
-                        .filter(emp => statusFilter === 'all' || emp.status === statusFilter)
-                        .forEach(emp => {
-                            const row = document.createElement('tr');
-                            row.className = 'hover:bg-gray-50';
-
-                            const statusColors = {
-                                'hired': 'bg-green-100 text-green-800',
-                                'fired': 'bg-red-100 text-red-800',
-                                'interview': 'bg-blue-100 text-blue-800'
-                            };
-
-                            const salaryClass = emp.status !== 'hired' ? 'text-gray-400' : '';
-
-                            row.innerHTML = `
-                                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs rounded-full ${statusColors[emp.status]}">${emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap ${salaryClass}">$${emp.salary.toLocaleString()}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">${emp.penalties}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">${emp.bonuses}</td>
-                            `;
-                            tbody.appendChild(row);
-                        });
-
-                    // Reset button
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Add Employee';
-                }, 1500);
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Добавить сотрудника';
             });
-        });
 
-        // Penalty and Bonus handling
-        document.addEventListener('click', async (e) => {
-            if (e.target.closest('.add-penalty')) {
-                const employeeId = e.target.closest('.add-penalty').dataset.employeeId;
-                document.getElementById('penalty-employee-id').value = employeeId;
-                document.getElementById('penalty-modal').classList.remove('hidden');
-            }
-
-            if (e.target.closest('.add-bonus')) {
-                const employeeId = e.target.closest('.add-bonus').dataset.employeeId;
-                document.getElementById('bonus-employee-id').value = employeeId;
-                document.getElementById('bonus-modal').classList.remove('hidden');
-            }
-        });
-
-        document.getElementById('close-penalty-modal').addEventListener('click', () => {
-            document.getElementById('penalty-modal').classList.add('hidden');
-        });
-
-        document.getElementById('close-bonus-modal').addEventListener('click', () => {
-            document.getElementById('bonus-modal').classList.add('hidden');
-        });
-
-        document.getElementById('add-penalty-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const employeeId = parseInt(document.getElementById('penalty-employee-id').value);
-            const penaltyData = {
-                reason: document.getElementById('penalty-reason').value,
-                amount: parseFloat(document.getElementById('penalty-amount').value)
-            };
-
-            await window.dataCache.addPenalty(employeeId, penaltyData);
-
-            // Show notification and reload
-            document.getElementById('penalty-modal').classList.add('hidden');
-            document.getElementById('success-notification').classList.remove('hidden');
-            setTimeout(() => {
-                document.getElementById('success-notification').classList.add('hidden');
-                window.location.reload();
-            }, 1000);
-        });
-
-        document.getElementById('add-bonus-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const employeeId = parseInt(document.getElementById('bonus-employee-id').value);
-            const bonusData = {
-                reason: document.getElementById('bonus-reason').value,
-                amount: parseFloat(document.getElementById('bonus-amount').value)
-            };
-
-            await window.dataCache.addBonus(employeeId, bonusData);
-
-            // Show notification and reload
-            document.getElementById('bonus-modal').classList.add('hidden');
-            document.getElementById('success-notification').classList.remove('hidden');
-            setTimeout(() => {
-                document.getElementById('success-notification').classList.add('hidden');
-                window.location.reload();
-            }, 1000);
-        });
-        
-        // Listen for cache updates and refresh employee list
-        let employeesLoadingPromise = null;
-        
-        async function reloadEmployeeTable() {
-            if (employeesLoadingPromise) return employeesLoadingPromise;
-            
-            employeesLoadingPromise = (async () => {
-                try {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const statusFilter = urlParams.get('status') || 'all';
-                    const employees = await window.dataCache.getEmployees();
-                    const tbody = document.getElementById('employees-table-body');
-                    tbody.innerHTML = '';
-
-            employees
-                .filter(emp => statusFilter === 'all' || emp.status === statusFilter)
-                .forEach(emp => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
-
-                    const statusColors = {
-                        'hired': 'bg-green-100 text-green-800',
-                        'fired': 'bg-red-100 text-red-800',
-                        'interview': 'bg-blue-100 text-blue-800'
-                    };
-
-                    const salaryClass = emp.status !== 'hired' ? 'text-gray-400' : '';
-
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs rounded-full ${statusColors[emp.status]}">${emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap ${salaryClass}">$${emp.salary.toLocaleString()}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span>${emp.penalties}</span>
-                            <button data-employee-id="${emp.id}" class="ml-2 text-red-500 hover:text-red-700 add-penalty">
-                                <i data-feather="plus" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span>${emp.bonuses}</span>
-                            <button data-employee-id="${emp.id}" class="ml-2 text-green-500 hover:text-green-700 add-bonus">
-                                <i data-feather="plus" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                    });
-                    
-                    feather.replace();
-                } finally {
-                    employeesLoadingPromise = null;
+            // Penalty and Bonus handling
+            document.addEventListener('click', async (e) => {
+                if (e.target.closest('.add-penalty')) {
+                    const employeeId = e.target.closest('.add-penalty').dataset.employeeId;
+                    document.getElementById('penalty-employee-id').value = employeeId;
+                    document.getElementById('penalty-modal').classList.remove('hidden');
                 }
-            })();
-            return employeesLoadingPromise;
-        }
-        
-        window.addEventListener('dataCache:updated', reloadEmployeeTable);
+
+                if (e.target.closest('.add-bonus')) {
+                    const employeeId = e.target.closest('.add-bonus').dataset.employeeId;
+                    document.getElementById('bonus-employee-id').value = employeeId;
+                    document.getElementById('bonus-modal').classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('close-penalty-modal').addEventListener('click', () => {
+                document.getElementById('penalty-modal').classList.add('hidden');
+            });
+
+            document.getElementById('close-bonus-modal').addEventListener('click', () => {
+                document.getElementById('bonus-modal').classList.add('hidden');
+            });
+
+            document.getElementById('add-penalty-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!e.target.checkValidity()) return;
+
+                const employeeId = parseInt(document.getElementById('penalty-employee-id').value);
+                const penaltyData = {
+                    reason: document.getElementById('penalty-reason').value,
+                    amount: parseFloat(document.getElementById('penalty-amount').value)
+                };
+
+                await window.dataCache.addPenalty(employeeId, penaltyData);
+
+                // Show notification and reload
+                document.getElementById('penalty-modal').classList.add('hidden');
+                document.getElementById('success-notification').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('success-notification').classList.add('hidden');
+                    reloadEmployeeTable(true);
+                }, 1000);
+            });
+
+            document.getElementById('add-bonus-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!e.target.checkValidity()) return;
+
+                const employeeId = parseInt(document.getElementById('bonus-employee-id').value);
+                const bonusData = {
+                    note: document.getElementById('bonus-note').value,
+                    amount: parseFloat(document.getElementById('bonus-amount').value)
+                };
+
+                await window.dataCache.addBonus(employeeId, bonusData);
+
+                // Show notification and reload
+                document.getElementById('bonus-modal').classList.add('hidden');
+                document.getElementById('success-notification').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('success-notification').classList.add('hidden');
+                    reloadEmployeeTable(true);
+                }, 1000);
+            });
+            
+            // Listen for cache updates and refresh employee list
+            window.addEventListener('dataCache:updated', () => reloadEmployeeTable(true));
+
+            // Initial load
+            reloadEmployeeTable();
+        });
     </script>
 </body>
 </html>

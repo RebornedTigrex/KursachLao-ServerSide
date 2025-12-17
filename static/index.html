@@ -1,6 +1,8 @@
+<!-- index.html (Dashboard) - Updated to use fetchAllData and remove multiple requests -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="/favicon" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Harmony Hub | Dashboard</title>
@@ -98,33 +100,21 @@
     <script src="components/navbar"></script>
 <script src="components/footer"></script>
 <!-- Scripts -->
-    <script src="modules/dataCache"></script>
+    <script src="modules/dataCache"></script> <!-- Note: Updated to dataCache -->
     <script>
         feather.replace();
         
         let dashboardLoadingPromise = null;
         
-        async function updateDashboard() {
+        async function updateDashboard(force = false) {
             if (dashboardLoadingPromise) return dashboardLoadingPromise;
             
             dashboardLoadingPromise = (async () => {
                 try {
-                    const data = await window.dataCache.getDashboardData();
-                    const employees = await window.dataCache.getEmployees();
-            const penalties = employees.reduce((sum, emp) => sum + (emp.penalties || 0), 0);
-            const bonuses = employees.reduce((sum, emp) => sum + (emp.bonuses || 0), 0);
-            
-            const hoursData = await Promise.all(
-                employees
-                    .filter(emp => emp.status === 'hired')
-                    .map(async emp => await window.dataCache.getHoursForEmployee(emp.id))
-            );
-            
-            const undertime = hoursData.reduce((sum, h) => sum + (h.undertime || 0), 0);
-            
-                    document.getElementById('penalties-count').textContent = penalties;
-                    document.getElementById('bonuses-count').textContent = bonuses;
-                    document.getElementById('undertime-count').textContent = undertime.toFixed(1);
+                    const { dashboard } = await window.dataCache.fetchAllData(force);
+                    document.getElementById('penalties-count').textContent = dashboard.penalties;
+                    document.getElementById('bonuses-count').textContent = dashboard.bonuses;
+                    document.getElementById('undertime-count').textContent = dashboard.undertime.toFixed(1);
                 } finally {
                     dashboardLoadingPromise = null;
                 }
@@ -133,10 +123,10 @@
         }
         
         // Initialize dashboard data
-        document.addEventListener('DOMContentLoaded', updateDashboard);
+        document.addEventListener('DOMContentLoaded', () => updateDashboard());
         
         // Listen for cache updates and refresh dashboard
-        window.addEventListener('dataCache:updated', updateDashboard);
+        window.addEventListener('dataCache:updated', () => updateDashboard(true));
     </script>
 </body>
 </html>

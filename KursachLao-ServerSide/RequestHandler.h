@@ -32,7 +32,6 @@ public:
         std::string base_dir = file_cache_->get_base_directory();
 
     }
-
     // ћетоды дл€ регистрации обработчиков конкретных путей
     void addRouteHandler(const std::string& path, std::function<void(const http::request<http::string_body>&, http::response<http::string_body>&)> handler);
 
@@ -42,7 +41,7 @@ public:
         res.set(http::field::server, "ModularServer");
         // FIXED: Uncomment и используй req.keep_alive() Ч mirror client
         res.keep_alive(req.keep_alive());
-        // NEW: Explicit Connection header дл€ force keep-alive (если !req.keep_alive(), но дл€ MVP Ч всегда true дл€ 1.1)
+        // NEW: Explicit Connection header дл€ force keep-alive (если !reиq.keep_alive(), но дл€ MVP Ч всегда true дл€ 1.1)
         if (req.version() >= 11 && res.keep_alive()) {
             res.set(http::field::connection, "keep-alive");
         }
@@ -51,7 +50,7 @@ public:
         auto [path, query] = parseTarget(target);
 
         // UPDATED: ѕровер€ем wildcard /* дл€ динамического поиска в кэше (только по path!)
-        auto wildcard_it = routeHandlers_.find("/*");
+        auto wildcard_it = routeHandlers_.find("/*"); //FIXME: ѕовышает врем€ отклика на (n)
         if (wildcard_it != routeHandlers_.end() && file_cache_) {
             file_cache_->refresh_file(path);
             auto cached_file = file_cache_->get_file(path);  // »щем по чистому path
@@ -80,6 +79,12 @@ public:
             const auto& cached = file_cache_->get_file("/attention");
             res.set(http::field::cache_control, "public, max-age=300");
             res.body() = cached.value().content;
+        }
+        else if (target.find("api/") != std::string::npos) {
+            res.set(http::field::content_type, "application/json");
+            res.result(http::status::not_found);
+            res.set(http::field::cache_control, "no-cache, must-revalidate");
+            res.body() = R"({"status": "not_found"})";
         }
         else {
             res.set(http::field::content_type, "text/html");

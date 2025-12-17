@@ -1,6 +1,8 @@
+<!-- hours.html - Updated to use fetchAllData, add validation, remove multiple requests -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="/favicon" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Harmony Hub | Work Hours</title>
@@ -21,7 +23,7 @@
                     <h2 class="text-lg font-semibold text-gray-700">Всего часов</h2>
                     <i data-feather="clock" class="text-blue-500"></i>
                 </div>
-                <div class="text-3xl font-bold text-blue-600" id="total-hours">160</div>
+                <div class="text-3xl font-bold text-blue-600" id="total-hours">0</div>
                 <p class="text-gray-500 mt-2">За месяц</p>
             </div>
             
@@ -30,7 +32,7 @@
                     <h2 class="text-lg font-semibold text-gray-700">Undertime</h2>
                     <i data-feather="alert-triangle" class="text-yellow-500"></i>
                 </div>
-                <div class="text-3xl font-bold text-yellow-600" id="undertime-hours">4.5</div>
+                <div class="text-3xl font-bold text-yellow-600" id="undertime-hours">0</div>
                 <p class="text-gray-500 mt-2">Часов за месяц</p>
             </div>
         </div>
@@ -66,17 +68,17 @@
 
                     <div>
                         <label for="regular-hours" class="block text-sm font-medium text-gray-700">Обычные часы</label>
-                        <input type="number" id="regular-hours" name="regularHours" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input type="number" id="regular-hours" name="regularHours" required min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
 
                     <div>
                         <label for="overtime" class="block text-sm font-medium text-gray-700">Сверхурочные</label>
-                        <input type="number" id="overtime" name="overtime" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
+                        <input type="number" id="overtime" name="overtime" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
                     </div>
 
                     <div>
                         <label for="undertime" class="block text-sm font-medium text-gray-700">Недоработка</label>
-                        <input type="number" id="undertime" name="undertime" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
+                        <input type="number" id="undertime" name="undertime" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
                     </div>
 
                     <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">
@@ -98,15 +100,15 @@
                     <input type="hidden" id="edit-hours-employee-id">
                     <div>
                         <label for="edit-regular-hours" class="block text-sm font-medium text-gray-700">Обычные часы</label>
-                        <input type="number" id="edit-regular-hours" name="regularHours" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input type="number" id="edit-regular-hours" name="regularHours" required min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                     </div>
                     <div>
                         <label for="edit-overtime" class="block text-sm font-medium text-gray-700">Сверхурочные</label>
-                        <input type="number" id="edit-overtime" name="overtime" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
+                        <input type="number" id="edit-overtime" name="overtime" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
                     </div>
                     <div>
                         <label for="edit-undertime" class="block text-sm font-medium text-gray-700">Недоработка</label>
-                        <input type="number" id="edit-undertime" name="undertime" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
+                        <input type="number" id="edit-undertime" name="undertime" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="0">
                     </div>
 
                     <div class="flex justify-end space-x-2">
@@ -136,23 +138,20 @@
             const editModal = document.getElementById('edit-hours-modal');
             const editForm = document.getElementById('edit-hours-form');
             
-            let loadingPromise = null; // Prevent concurrent loads
+            let loadingPromise = null;
 
-            // Load employees and hours with debounce protection
-            async function loadHours() {
-                // If already loading, wait for it
-                if (loadingPromise) {
-                    return loadingPromise;
-                }
+            // Load employees and hours
+            async function loadHours(force = false) {
+                if (loadingPromise) return loadingPromise;
                 
                 loadingPromise = (async () => {
                     try {
+                        const { employees, hours } = await window.dataCache.fetchAllData(force);
                         tbody.innerHTML = '';
 
-                        const employees = await window.dataCache.getEmployees();
                         const hired = employees.filter(emp => emp.status === 'hired');
 
-                        // Populate employee dropdown (clear first)
+                        // Populate employee dropdown
                         employeeSelect.innerHTML = '';
                         hired.forEach(emp => {
                             const option = document.createElement('option');
@@ -161,17 +160,13 @@
                             employeeSelect.appendChild(option);
                         });
 
-                        const rows = await Promise.all(hired.map(async emp => {
-                            const hoursData = await window.dataCache.getHoursForEmployee(emp.id);
-                            return { emp, hoursData };
-                        }));
-
                         let totalHours = 0;
                         let totalUndertime = 0;
 
-                        rows.forEach(({ emp, hoursData }) => {
-                            totalHours += Number(hoursData.regularHours || 0) + Number(hoursData.overtime || 0);
-                            totalUndertime += Number(hoursData.undertime || 0);
+                        hired.forEach(emp => {
+                            const hoursData = hours.find(h => h.employeeId === emp.id) || { regularHours: 0, overtime: 0, undertime: 0 };
+                            totalHours += Number(hoursData.regularHours) + Number(hoursData.overtime);
+                            totalUndertime += Number(hoursData.undertime);
 
                             const row = document.createElement('tr');
                             row.className = 'hover:bg-gray-50';
@@ -222,6 +217,7 @@
 
             editForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (!editForm.checkValidity()) return;
                 const employeeId = parseInt(document.getElementById('edit-hours-employee-id').value, 10);
                 const payload = {
                     regularHours: parseFloat(document.getElementById('edit-regular-hours').value) || 0,
@@ -238,12 +234,13 @@
                 setTimeout(() => notification.classList.add('hidden'), 2000);
 
                 // load fresh data
-                await loadHours();
+                await loadHours(true);
             });
 
             // Form submission (add new hours entry)
             document.getElementById('add-hours-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (!e.target.checkValidity()) return;
 
                 const formData = {
                     employeeId: parseInt(employeeSelect.value, 10),
@@ -263,11 +260,11 @@
                 setTimeout(() => notification.classList.add('hidden'), 3000);
 
                 // load fresh data
-                await loadHours();
+                await loadHours(true);
             });
 
-            // Listen for external cache updates and refresh (debounced by loadingPromise check)
-            window.addEventListener('dataCache:updated', loadHours);
+            // Listen for external cache updates and refresh
+            window.addEventListener('dataCache:updated', () => loadHours(true));
 
             // Initial load
             loadHours();
