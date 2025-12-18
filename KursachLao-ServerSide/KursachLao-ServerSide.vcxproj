@@ -138,6 +138,7 @@
     <ClInclude Include="ApiProcessor.h" />
     <ClInclude Include="BaseModule.h" />
     <ClInclude Include="DatabaseModule.h" />
+    <ClInclude Include="DoSProtectionModule.h" />
     <ClInclude Include="FileCache.h" />
     <ClInclude Include="Session.h" />
     <ClInclude Include="macros.h" />
