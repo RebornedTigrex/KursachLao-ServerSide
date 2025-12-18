@@ -37,11 +37,11 @@ private:
         http::async_read(socket_, buffer_, req_,
             [self = shared_from_this()](beast::error_code ec, std::size_t bytes) {  // NEW: дебаг байты
                 if (!ec) {
-                    std::cout << "Read " << bytes << " bytes for next request" << std::endl;  // Debug: keep-alive reads
+                    //std::cout << "Read " << bytes << " bytes for next request" << std::endl;  // Debug: keep-alive reads
                     self->on_read();
                 }
                 else if (ec == http::error::end_of_stream) {
-                    std::cout << "End of stream — closing session" << std::endl;
+                    //std::cout << "End of stream — closing session" << std::endl;
                     // Graceful close
                     beast::error_code sec;
                     self->socket_.shutdown(net::socket_base::shutdown_both, sec);
@@ -62,7 +62,7 @@ private:
         // Лямбда для after_write — захват sp_sender (copy shared) + self (no dangling)
         auto after_write = [self = shared_from_this(), sp_sender](beast::error_code ec) {
             if (ec == http::error::end_of_stream) {  // NEW: Client closed — normal, no re-read
-                std::cout << "Client closed connection gracefully" << std::endl;
+                //std::cout << "Client closed connection gracefully" << std::endl;
                 return;
             }
             if (!ec && !sp_sender->close_) {

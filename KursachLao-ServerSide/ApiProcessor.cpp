@@ -192,14 +192,32 @@ void ApiProcessor::handleAddEmployee(const http::request<http::string_body>& req
         return sendJsonError(res, http::status::method_not_allowed, "Only POST allowed");
     }
 
+    //std::cout << "Received request target: " << req.target() << std::endl;
+    //std::cout << "Received body: |" << req.body() << "|" << std::endl;
+
     try {
         bj::value jv = bj::parse(req.body());
+        if (jv.is_array()) {
+            std::cout << "Received unexpected array instead of object" << std::endl;
+            return sendJsonError(res, http::status::bad_request, "Expected JSON object, got array");
+        }
+        if (!jv.is_object()) {
+            return sendJsonError(res, http::status::bad_request, "Invalid JSON: not an object");
+        }
         const bj::object& body = jv.as_object();
 
         std::string fullname = std::string(body.at("fullname").as_string());
         std::string status = std::string(body.at("status").as_string());
-        double salary = body.at("salary").as_double();
-
+        double salary = 0.0;
+        if (body.at("salary").is_int64()) {
+            salary = static_cast<double>(body.at("salary").as_int64());
+        }
+        else if (body.at("salary").is_double()) {
+            salary = body.at("salary").as_double();
+        }
+        else {
+            return sendJsonError(res, http::status::bad_request, "Salary must be a number");
+        }
         if (fullname.size() < 3) return sendJsonError(res, http::status::bad_request, "Fullname too short");
         if (status != "hired" && status != "fired" && status != "interview") {
             return sendJsonError(res, http::status::bad_request, "Invalid status");
@@ -224,7 +242,8 @@ void ApiProcessor::handleAddEmployee(const http::request<http::string_body>& req
         res.body() = bj::serialize(employeeToJson(r[0]));
         res.prepare_payload();
     }
-    catch (const boost::system::system_error&) {
+    catch (const boost::system::system_error& se) {
+        std::cout << "Parse error: " << se.what() << std::endl; //FIXME: Будет срать ошибками boost в фронт
         sendJsonError(res, http::status::bad_request, "Invalid JSON");
     }
     catch (const std::exception& e) {
@@ -268,7 +287,13 @@ void ApiProcessor::handleUpdateEmployee(const http::request<http::string_body>& 
             update_params.append(st);
         }
         if (body.contains("salary")) {
-            double sal = body.at("salary").as_double();
+            double sal = 0.0;
+            if (body.at("salary").is_int64()) {
+                sal = static_cast<double>(body.at("salary").as_int64());
+            }
+            else if (body.at("salary").is_double()) {
+                sal = body.at("salary").as_double();
+            }
             if (sal <= 0) return sendJsonError(res, http::status::bad_request, "Salary must be > 0");
             set_clause += "salary = $" + std::to_string(update_params.size() + 1) + ", ";
             update_params.append(sal);
@@ -324,9 +349,33 @@ void ApiProcessor::handleAddHours(const http::request<http::string_body>& req,
         bj::value jv = bj::parse(req.body());
         const bj::object& body = jv.as_object();
 
-        double regular = body.contains("regularHours") ? body.at("regularHours").as_double() : 0.0;
-        double overtime = body.contains("overtime") ? body.at("overtime").as_double() : 0.0;
-        double undertime = body.contains("undertime") ? body.at("undertime").as_double() : 0.0;
+        double regular = 0.0;
+        if (body.contains("regularHours")) {
+            if (body.at("regularHours").is_int64()) {
+                regular = static_cast<double>(body.at("regularHours").as_int64());
+            }
+            else if (body.at("regularHours").is_double()) {
+                regular = body.at("regularHours").as_double();
+            }
+        }
+        double overtime = 0.0;
+        if (body.contains("overtime")) {
+            if (body.at("overtime").is_int64()) {
+                overtime = static_cast<double>(body.at("overtime").as_int64());
+            }
+            else if (body.at("overtime").is_double()) {
+                overtime = body.at("overtime").as_double();
+            }
+        }
+        double undertime = 0.0;
+        if (body.contains("undertime")) {
+            if (body.at("undertime").is_int64()) {
+                undertime = static_cast<double>(body.at("undertime").as_int64());
+            }
+            else if (body.at("undertime").is_double()) {
+                undertime = body.at("undertime").as_double();
+            }
+        }
 
         if (regular < 0 || overtime < 0 || undertime < 0) {
             return sendJsonError(res, http::status::bad_request, "Hours cannot be negative");
@@ -351,7 +400,8 @@ void ApiProcessor::handleAddHours(const http::request<http::string_body>& req,
         res.body() = bj::serialize(hoursToJson(r[0]));
         res.prepare_payload();
     }
-    catch (const boost::system::system_error&) {
+    catch (const boost::system::system_error& se) {
+        std::cout << "ApiProcessor Error: " << se.what();
         sendJsonError(res, http::status::bad_request, "Invalid JSON");
     }
     catch (const std::exception& e) {
@@ -378,7 +428,13 @@ void ApiProcessor::handleAddPenalty(const http::request<http::string_body>& req,
         const bj::object& body = jv.as_object();
 
         std::string reason = std::string(body.at("reason").as_string());
-        double amount = body.at("amount").as_double();
+        double amount = 0.0;
+        if (body.at("amount").is_int64()) {
+            amount = static_cast<double>(body.at("amount").as_int64());
+        }
+        else if (body.at("amount").is_double()) {
+            amount = body.at("amount").as_double();
+        }
 
         if (reason.size() < 3) return sendJsonError(res, http::status::bad_request, "Reason too short");
         if (amount <= 0) return sendJsonError(res, http::status::bad_request, "Amount must be > 0");
@@ -400,7 +456,8 @@ void ApiProcessor::handleAddPenalty(const http::request<http::string_body>& req,
         res.body() = bj::serialize(penaltyToJson(r[0]));
         res.prepare_payload();
     }
-    catch (const boost::system::system_error&) {
+    catch (const boost::system::system_error& se) {
+        std::cout << "ApiProcessor Error:" << se.what();
         sendJsonError(res, http::status::bad_request, "Invalid JSON");
     }
     catch (const std::exception& e) {
@@ -427,7 +484,13 @@ void ApiProcessor::handleAddBonus(const http::request<http::string_body>& req,
         const bj::object& body = jv.as_object();
 
         std::string note = std::string(body.at("note").as_string());
-        double amount = body.at("amount").as_double();
+        double amount = 0.0;
+        if (body.at("amount").is_int64()) {
+            amount = static_cast<double>(body.at("amount").as_int64());
+        }
+        else if (body.at("amount").is_double()) {
+            amount = body.at("amount").as_double();
+        }
 
         if (note.size() < 3) return sendJsonError(res, http::status::bad_request, "Note too short");
         if (amount <= 0) return sendJsonError(res, http::status::bad_request, "Amount must be > 0");
