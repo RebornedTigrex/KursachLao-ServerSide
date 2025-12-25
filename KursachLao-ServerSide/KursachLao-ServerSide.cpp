@@ -7,6 +7,7 @@
 
 #include "DatabaseModule.h"
 #include "ApiProcessor.h"
+#include "DoSProtectionModule.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/thread.hpp>
@@ -162,6 +163,7 @@ int main(int argc, char* argv[]) {
     ModuleRegistry registry;
     auto* cacheModule = registry.registerModule<FileCache>(directory.c_str(), true, 100);
     auto* requestModule = registry.registerModule<RequestHandler>();
+    auto* dosProtectionModule = registry.registerModule<DoSProtectionModule>();
     auto* dbModule = registry.registerModule<DatabaseModule>(ioc, databaseStr);
 
     ApiProcessor apiProcessor(dbModule); //TODO: Не совсем подходит моей идеологии управления жизнью через реестр модулей. Однако это по сути обёртка
@@ -184,13 +186,19 @@ int main(int argc, char* argv[]) {
         std::cout << "Server started on http://" << address << ":" << port << std::endl;
 
         // UPDATED: Do_accept с std::function для safe recursive (avoid self-ref UB)
-        std::function<void()> do_accept_func = [&acceptor, &ioc, requestModule, &do_accept_func]() {  // NEW: Explicit function, self-capture by ref
+        std::function<void()> do_accept_func = [&acceptor, &ioc, requestModule, &do_accept_func, &dosProtectionModule]() {  // NEW: Explicit function, self-capture by ref
             auto socket = std::make_shared<tcp::socket>(ioc);
             acceptor.async_accept(*socket,
-                [socket_ptr = socket, &do_accept_func, requestModule](beast::error_code ec) {
+                [socket_ptr = socket, &do_accept_func, requestModule, &dosProtectionModule](beast::error_code ec) {
                     if (!ec) {
                         printConnectionInfo(*socket_ptr);
-                        std::make_shared<session>(std::move(*socket_ptr), requestModule)->run();
+                        std::string ip = (*socket_ptr).remote_endpoint().address().to_string();
+                        if (dosProtectionModule->isAllowed(ip)) {
+                            std::make_shared<session>(std::move(*socket_ptr), requestModule)->run();
+                        }
+                        else {
+                            std::cout << "[" << ip << "] Connection terminated: DoS protection triggered (rate limit exceeded)\n";
+                        }
                     }
                     else {
                         std::cerr << "Accept error: " << ec.message() << std::endl;
