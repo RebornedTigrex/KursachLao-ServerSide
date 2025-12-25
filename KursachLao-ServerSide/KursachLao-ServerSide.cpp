@@ -8,6 +8,7 @@
 #include "DatabaseModule.h"
 #include "ApiProcessor.h"
 #include "DoSProtectionModule.h"
+#include "ServerConfig.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/thread.hpp>
@@ -104,47 +105,8 @@ void CreateNewHandlers(RequestHandler* module, std::string staticFolder) {
 }
 
 int main(int argc, char* argv[]) {
-    // Объявление переменных для параметров
-    std::string address;
-    int port;
-    std::string directory;
+    const ServerConfig config = ServerConfig::parse(argc, argv);
 
-    // Настройка парсера аргументов
-    po::options_description desc("Available options");
-    desc.add_options()
-        ("help,h", "Show help")
-        ("address,a", po::value<std::string>(&address)->default_value("0.0.0.0"),
-            "IP address to listen on")
-        ("port,p", po::value<int>(&port)->default_value(8080),
-            "Port to listen on")
-        ("directory,d", po::value<std::string>(&directory)->default_value("static"),
-            "Path to static files");
-
-    po::variables_map vm;
-    try {
-        po::store(po::parse_command_line(argc, argv, desc), vm);
-        po::notify(vm);
-
-        if (vm.count("help")) {
-            std::cout << desc << "\n";
-            return 0;
-        }
-
-        if (port <= 0 || port > 65535) {
-            std::cerr << "Error: port must be in the range 1-65535\n";
-            return EXIT_FAILURE;
-        }
-
-        // Проверка существования директории
-        if (!fs::exists(directory)) {
-            std::cerr << "Warning: directory '" << directory << "' does not exist\n";
-        }
-    }
-    catch (const po::error& e) {
-        std::cerr << "Argument parsing error: " << e.what() << "\n";
-        std::cerr << desc << "\n";
-        return EXIT_FAILURE;
-    }
 #ifdef _WIN32
     std::cout << "Console CP: " << GetConsoleCP() << std::endl;
     std::cout << "Console Output CP: " << GetConsoleOutputCP() << std::endl;
@@ -152,18 +114,18 @@ int main(int argc, char* argv[]) {
     std::cout << "OEMCP: " << GetOEMCP() << std::endl;
 #endif //_WIN32
 
-    // Вывод конфигурации
-    std::cout << "Server configuration:\n"
-        << " Address: " << address << "\n"
-        << " Port: " << port << "\n"
-        << " Directory: " << directory << "\n\n";
+    //// Вывод конфигурации
+    //std::cout << "Server configuration:\n"
+    //    << " Address: " << address << "\n"
+    //    << " Port: " << port << "\n"
+    //    << " Directory: " << directory << "\n\n";
 //////////////////////////////////////////////////////////
     net::io_context ioc;
 
     const char* databaseStr = "dbname=postgres user=postgres password=postgres host=127.0.0.1 port=54855";//TODO: Перенести хардкод в параметры
 
     ModuleRegistry registry;
-    auto* cacheModule = registry.registerModule<FileCache>(directory.c_str(), true, 100);
+    auto* cacheModule = registry.registerModule<FileCache>(config.directory.c_str(), true, 100);
     auto* requestModule = registry.registerModule<RequestHandler>();
     auto* dosProtectionModule = registry.registerModule<DoSProtectionModule>();
     auto* dbModule = registry.registerModule<DatabaseModule>(ioc, databaseStr);
@@ -172,7 +134,7 @@ int main(int argc, char* argv[]) {
 
     CreateAPIHandlers(requestModule, &apiProcessor);
 
-    CreateNewHandlers(requestModule, directory);
+    CreateNewHandlers(requestModule, config.directory);
 
     registry.initializeAll();
 
@@ -182,10 +144,10 @@ int main(int argc, char* argv[]) {
 ///////////////////////////////////////////////////////////
 
     try {
-        auto const net_address = net::ip::make_address(address);
-        auto const net_port = static_cast<unsigned short>(port);
+        auto const net_address = net::ip::make_address(config.address);
+        auto const net_port = static_cast<unsigned short>(config.port);
         tcp::acceptor acceptor{ ioc, {net_address, net_port} };
-        std::cout << "Server started on http://" << address << ":" << port << std::endl;
+        std::cout << "Server started on http://" << config.address << ":" << config.port << std::endl;
 
         // UPDATED: Do_accept с std::function для safe recursive (avoid self-ref UB)
         std::function<void()> do_accept_func = [&acceptor, &ioc, requestModule, &do_accept_func, &dosProtectionModule]() {  // NEW: Explicit function, self-capture by ref
