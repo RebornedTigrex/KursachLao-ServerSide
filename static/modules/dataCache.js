@@ -89,9 +89,11 @@
             this.isOfflineMode = false; // Сброс оффлайн-режима при успехе
             return data;
         } catch (err) {
-            console.warn('Network error, switching to offline mode:', err);
-            this.isOfflineMode = true; // Включаем оффлайн-режим при любой ошибке (503, сеть и т.д.)
-            throw err; // Пробрасываем для обработки в CRUD
+            if (!this.isOfflineMode) {
+                console.warn('Network error, switching to offline mode:', err);
+                this.isOfflineMode = true; // Включаем оффлайн-режим при любой ошибке (503, сеть и т.д.)
+                throw err; // Пробрасываем для обработки в CRUD
+            }
         }
     }
 
@@ -120,7 +122,7 @@
                 return this.cache;
             }
         } catch (err) {
-            console.warn('Using local cache due to network error:', err);
+            //console.warn('Using local cache due to network error:', err);
             // Не throw здесь — возвращаем локальные данные
         }
 
