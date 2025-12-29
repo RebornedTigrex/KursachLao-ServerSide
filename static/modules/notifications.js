@@ -1,13 +1,12 @@
-// modules/notifications.js - Module for handling dynamic notifications
+﻿// modules/notifications.js - Module for handling dynamic notifications with offline suppression
 
 window.notifications = (function () {
     const container = document.getElementById('notification-container');
 
     function createNotificationElement(message, type) {
         const div = document.createElement('div');
-        div.className = `px-4 py-2 rounded-lg shadow-lg ${
-            type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-        }`;
+        div.className = `px-4 py-2 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
         div.innerHTML = message;
         return div;
     }
@@ -29,6 +28,12 @@ window.notifications = (function () {
     }
 
     function showError(error) {
+        // Проверяем, если оффлайн-режим — не показываем ошибку
+        if (window.dataCache?.isOffline()) {
+            console.warn('Offline mode: suppressing error notification', error);
+            return; // Silent — нет попапа
+        }
+
         let errorMessage = 'Ошибка операции';
         if (error instanceof Error) {
             errorMessage += `: ${error.message}`;

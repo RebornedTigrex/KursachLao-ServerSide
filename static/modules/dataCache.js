@@ -1,6 +1,4 @@
-// modules/dataCache.js - Improved Data Cache Module with proper error propagation for notifications
-
-class DataCache {
+﻿class DataCache {
     constructor(options = {}) {
         this.storageKey = options.storageKey || 'hr_data_cache_v1';
         this.cache = {
@@ -14,6 +12,7 @@ class DataCache {
 
         this.apiBaseUrl = options.apiBaseUrl || '/api';
         this.enablePersistence = typeof options.enablePersistence === 'boolean' ? options.enablePersistence : true;
+        this.isOfflineMode = false; // Новый флаг для оффлайн-режима
 
         this._loadFromStorage();
     }
@@ -46,7 +45,7 @@ class DataCache {
         this._saveToStorage();
         try {
             window.dispatchEvent(new CustomEvent('dataCache:updated', { detail: { lastUpdated: this.cache.lastUpdated } }));
-        } catch (e) {}
+        } catch (e) { }
     }
 
     _isCacheExpired() {
@@ -73,13 +72,13 @@ class DataCache {
             });
 
             if (!res.ok) {
-                const text = await res.text(); // Получаем тело ответа (обычно JSON с ошибкой)
+                const text = await res.text();
                 const error = {
                     status: res.status,
                     statusText: res.statusText,
                     body: text
                 };
-                throw error; // Структурированная ошибка для notifications.js
+                throw error;
             }
 
             const data = await res.json();
@@ -87,11 +86,17 @@ class DataCache {
             if (data.lastUpdated && new Date(data.lastUpdated) > new Date(this.cache.lastUpdated || 0)) {
                 this.cache.lastUpdated = data.lastUpdated;
             }
+            this.isOfflineMode = false; // Сброс оффлайн-режима при успехе
             return data;
         } catch (err) {
-            // Сетевые ошибки (нет соединения и т.п.) тоже пробрасываем
-            throw err;
+            console.warn('Network error, switching to offline mode:', err);
+            this.isOfflineMode = true; // Включаем оффлайн-режим при любой ошибке (503, сеть и т.д.)
+            throw err; // Пробрасываем для обработки в CRUD
         }
+    }
+
+    isOffline() {
+        return this.isOfflineMode;
     }
 
     setOptions(opts = {}) {
@@ -116,6 +121,7 @@ class DataCache {
             }
         } catch (err) {
             console.warn('Using local cache due to network error:', err);
+            // Не throw здесь — возвращаем локальные данные
         }
 
         // Mock/fallback only if cache is empty
@@ -205,8 +211,7 @@ class DataCache {
                 await this.fetchAllData(true);
             }
         } catch (error) {
-            // Пробрасываем ошибку дальше — обработается в UI (notifications)
-            throw error;
+            if (!this.isOfflineMode) throw error; // Не бросаем ошибку в оффлайн-режиме
         }
 
         return newEmployee;
@@ -224,7 +229,7 @@ class DataCache {
             await this._syncToServer('PUT', `/employees/${employeeId}`, emp);
             await this.fetchAllData(true);
         } catch (error) {
-            throw error;
+            if (!this.isOfflineMode) throw error;
         }
 
         return emp;
@@ -247,7 +252,7 @@ class DataCache {
             await this._syncToServer('POST', `/hours/${employeeId}`, existing);
             await this.fetchAllData(true);
         } catch (error) {
-            throw error;
+            if (!this.isOfflineMode) throw error;
         }
     }
 
@@ -267,7 +272,7 @@ class DataCache {
             await this._syncToServer('POST', `/employees/${employeeId}/penalties`, penalty);
             await this.fetchAllData(true);
         } catch (error) {
-            throw error;
+            if (!this.isOfflineMode) throw error;
         }
     }
 
@@ -287,13 +292,14 @@ class DataCache {
             await this._syncToServer('POST', `/employees/${employeeId}/bonuses`, bonus);
             await this.fetchAllData(true);
         } catch (error) {
-            throw error;
+            if (!this.isOfflineMode) throw error;
         }
     }
 
     clearCache() {
         this.cache = { dashboard: null, employees: [], hours: [], penalties: [], bonuses: [], lastUpdated: null };
-        try { localStorage.removeItem(this.storageKey); } catch (e) {}
+        try { localStorage.removeItem(this.storageKey); } catch (e) { }
+        this.isOfflineMode = false; // Сброс при очистке
     }
 }
 
