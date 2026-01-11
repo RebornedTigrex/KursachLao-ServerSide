@@ -48,8 +48,8 @@ namespace {
 }
 
 // Конструктор (как оригинал, с вызовом rebuild_file_map)
-FileCache::FileCache(const std::string& base_dir, bool enable_cache, size_t max_cache)
-    : BaseModule("File Cache Module"), cache_enabled_(enable_cache), max_cache_size_(max_cache), total_cache_size_(0) {
+FileCache::FileCache(const std::string& base_dir, bool enable_cache, size_t max_cache, int chache_mode)
+    : BaseModule("File Cache Module"), fileCacheMode(chache_mode), cache_enabled_(enable_cache), max_cache_size_(max_cache), total_cache_size_(0) {
     base_directory_ = fs::absolute(base_dir);
     if (!fs::exists(base_directory_) || !fs::is_directory(base_directory_)) {
         throw std::runtime_error("Base directory does not exist or is not accessible: " + base_dir);
@@ -150,28 +150,33 @@ std::string FileCache::normalize_route(const fs::path& file_path) const {
         // Если не можем получить относительный путь, используем полный
         return "/invalid_path";
     }
-    // Создаем маршрут без расширения файла
     std::string route = "/";
-    // Добавляем родительские директории
-    if (relative_path.has_parent_path() && relative_path.parent_path() != ".") {
-        route += relative_path.parent_path().string() + "/";
+    if (fileCacheMode == 0) {
+        route += relative_path.string();
     }
-    // Добавляем имя файла без расширения
-    std::string stem = relative_path.stem().string();
-    if (!stem.empty()) {
-        route += stem;
-    }
-    // Специальная обработка для index файлов
-    std::string filename_lower = stem;
-    std::transform(filename_lower.begin(), filename_lower.end(), filename_lower.begin(), ::tolower);
-    if (filename_lower == "index") {
-        // Если это index в корне - возвращаем "/"
-        if (!relative_path.has_parent_path() || relative_path.parent_path() == ".") {
-            return "/";
+    else if (fileCacheMode == 1) {
+        // Добавляем родительские директории
+        if (relative_path.has_parent_path() && relative_path.parent_path() != ".") {
+            route += relative_path.parent_path().string() + "/";
         }
-        // Если index в поддиректории - возвращаем путь до директории
-        return "/" + relative_path.parent_path().string() + "/";
+        // Добавляем имя файла без расширения
+        std::string stem = relative_path.stem().string();
+        if (!stem.empty()) {
+            route += stem;
+        }
+        // Специальная обработка для index файлов
+        std::string filename_lower = stem;
+        std::transform(filename_lower.begin(), filename_lower.end(), filename_lower.begin(), ::tolower);
+        if (filename_lower == "index") {
+            // Если это index в корне - возвращаем "/"
+            if (!relative_path.has_parent_path() || relative_path.parent_path() == ".") {
+                return "/";
+            }
+            // Если index в поддиректории - возвращаем путь до директории
+            return "/" + relative_path.parent_path().string() + "/";
+        }
     }
+
     // Заменяем обратные слеши на прямые (для Windows)
     std::replace(route.begin(), route.end(), '\\', '/');
     // Удаляем двойные слеши

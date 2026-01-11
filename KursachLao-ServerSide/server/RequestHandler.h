@@ -82,8 +82,8 @@ public:
         }
         else if (target.find("../") != std::string::npos) {
             res.set(http::field::content_type, "text/html");
-            file_cache_->refresh_file("/attention");
-            const auto& cached = file_cache_->get_file("/attention");
+            file_cache_->refresh_file("/attention.html");
+            const auto& cached = file_cache_->get_file("/attention.html");
             res.set(http::field::cache_control, "public, max-age=300");
             res.body() = cached.value().content;
             res.prepare_payload();
@@ -116,8 +116,8 @@ public:
             }
             else {
                 res.set(http::field::content_type, "text/html");
-                file_cache_->refresh_file("/errorNotFound");
-                const auto& cached = file_cache_->get_file("/errorNotFound");
+                file_cache_->refresh_file("/errorNotFound.html");
+                const auto& cached = file_cache_->get_file("/errorNotFound.html");
                 res.set(http::field::cache_control, "public, max-age=300");
                 res.body() = cached.value().content;
                 res.prepare_payload();

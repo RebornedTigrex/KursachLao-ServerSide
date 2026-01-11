@@ -14,7 +14,12 @@
 namespace fs = std::filesystem;
 
 class FileCache : public BaseModule {  // UPDATED: Наследник BaseModule
+public:
+    enum Mode { None = 0, CleanFileType = 1 };
+
 private:
+    int fileCacheMode;
+
     struct CachedFile {
         std::string content;
         std::string mime_type;
@@ -41,7 +46,7 @@ private:
 
 public:
     // FIXED: Вернул оригинальный конструктор с args (rebuild_file_map() внутри)
-    FileCache(const std::string& base_dir, bool enable_cache = true, size_t max_cache = 100);
+    FileCache(const std::string& base_dir, bool enable_cache = true, size_t max_cache = 100, int chache_mode = Mode::None);
     ~FileCache() = default;
 
     // Запрещаем копирование/перемещение
