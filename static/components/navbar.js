@@ -87,13 +87,13 @@
           <a href="/" class="nav-button">
             <span>Панель управления</span>
           </a>
-          <a href="employees" class="nav-button">
+          <a href="employees.html" class="nav-button">
             <span>Сотрудники</span>
           </a>
-          <a href="salary" class="nav-button">
+          <a href="salary.html" class="nav-button">
             <span>Зарплата</span>
           </a>
-          <a href="hours" class="nav-button">
+          <a href="hours.html" class="nav-button">
             <span>Часы</span>
           </a>
         </div>

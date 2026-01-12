@@ -1,130 +1,143 @@
 ﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <link rel="icon" href="/favicon" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR Harmony Hub | Панель управления</title>
-    <link rel="stylesheet" href="style">
-    <script src="/thirdParty/3.4.17"></script>
-    <script src="/thirdParty/feather.min"></script>
+    <title>HR Harmony Hub - Панель управления</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico">
+    <script src="thirdParty/feather.min.js"></script>
+    <script src="thirdParty/3.4.17.js"></script> <!-- Предполагаю, что это какая-то библиотека, например, moment.js или подобная -->
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 text-gray-900">
+    <!-- Navbar -->
     <custom-navbar></custom-navbar>
-    <main class="container mx-auto px-4 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <!-- Карточка штрафов -->
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-700">Штрафы</h2>
-                    <i data-feather="alert-triangle" class="text-red-500"></i>
-                </div>
-                <div class="text-3xl font-bold text-red-600" id="penalties-count">0</div>
-                <p class="text-gray-500 mt-2">За месяц</p>
-            </div>
 
-            <!-- Карточка бонусов -->
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-700">Бонусы</h2>
-                    <i data-feather="gift" class="text-green-500"></i>
-                </div>
-                <div class="text-3xl font-bold text-green-600" id="bonuses-count">0</div>
-                <p class="text-gray-500 mt-2">За месяц</p>
-            </div>
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-4 right-4 z-50 hidden"></div>
 
-            <!-- Карточка недоработки -->
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-700">Недоработка</h2>
-                    <i data-feather="clock" class="text-yellow-500"></i>
-                </div>
-                <div class="text-3xl font-bold text-yellow-600" id="undertime-count">0</div>
-                <p class="text-gray-500 mt-2">Часов за месяц</p>
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        <h1 class="text-3xl font-bold mb-8 text-center">Панель управления</h1>
+
+        <!-- Dashboard Cards -->
+        <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <!-- Cards will be dynamically inserted here -->
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Быстрые действия</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="employees.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition-all">
+                    <i data-feather="users" class="w-8 h-8 mx-auto mb-2 text-blue-500"></i>
+                    <p>Управление сотрудниками</p>
+                </a>
+                <a href="salary.html" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition-all">
+                    <i data-feather="dollar-sign" class="w-8 h-8 mx-auto mb-2 text-green-500"></i>
+                    <p>Расчет зарплат</p>
+                </a>
+                <a href="hours.html" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition-all">
+                    <i data-feather="clock" class="w-8 h-8 mx-auto mb-2 text-purple-500"></i>
+                    <p>Учет часов</p>
+                </a>
+                <a href="applicants.html" class="bg-yellow-50 hover:bg-yellow-100 p-4 rounded-lg text-center transition-all">
+                    <i data-feather="file-text" class="w-8 h-8 mx-auto mb-2 text-yellow-500"></i>
+                    <p>Заявки соискателей</p>
+                </a>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-gray-800">Быстрые действия</h2>
-                <a href="employees" class="text-blue-500 hover:text-blue-700 flex items-center">
-                    <span>Показать все</span>
-                    <i data-feather="chevron-right" class="ml-1 w-4 h-4"></i>
-                </a>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="salary" class="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center">
-                        <div class="bg-green-100 p-3 rounded-full mr-4">
-                            <i data-feather="dollar-sign" class="text-green-500"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-medium">Зарплаты</h3>
-                            <p class="text-sm text-gray-500">Перейти к управлению зарплатой</p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="hours" class="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center">
-                        <div class="bg-blue-100 p-3 rounded-full mr-4">
-                            <i data-feather="clock" class="text-blue-500"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-medium">Отработанные часы</h3>
-                            <p class="text-sm text-gray-500">Просмотр учёта часов</p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="employees?status=interview" class="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center">
-                        <div class="bg-blue-100 p-3 rounded-full mr-4">
-                            <i data-feather="users" class="text-blue-500"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-medium">Собеседования</h3>
-                            <p class="text-sm text-gray-500">Кандидаты в процессе</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Последняя активность</h2>
+            <ul id="recent-activity-list" class="divide-y divide-gray-200">
+                <!-- Items will be dynamically inserted here -->
+            </ul>
         </div>
     </main>
 
+    <!-- Footer -->
     <custom-footer></custom-footer>
-    <!-- Components -->
-    <script src="components/navbar"></script>
-    <script src="components/footer"></script>
+
     <!-- Scripts -->
-    <script src="modules/dataCache"></script> <!-- Note: Updated to dataCache -->
+    <script src="modules/dataCache.js"></script>
+    <script src="modules/notifications.js"></script>
+    <script src="modules/serverSync.js"></script> <!-- Для синхронизации, если нужно -->
+    <script src="components/navbar.js"></script>
+    <script src="components/footer.js"></script>
     <script>
+        // Инициализация Feather icons
         feather.replace();
 
-        let dashboardLoadingPromise = null;
-
-        async function updateDashboard(force = false) {
-            if (dashboardLoadingPromise) return dashboardLoadingPromise;
-
-            dashboardLoadingPromise = (async () => {
-                try {
-                    const { dashboard } = await window.dataCache.fetchAllData(force);
-                    document.getElementById('penalties-count').textContent = dashboard.penalties;
-                    document.getElementById('bonuses-count').textContent = dashboard.bonuses;
-                    document.getElementById('undertime-count').textContent = dashboard.undertime.toFixed(1);
-                } finally {
-                    dashboardLoadingPromise = null;
-                }
-            })();
-            return dashboardLoadingPromise;
+        // Функция для создания dashboard карты
+        function createDashboardCard(title, value, icon, color) {
+            return `
+                    <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition-all">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">${title}</h3>
+                            <i data-feather="${icon}" class="w-6 h-6 text-${color}-500"></i>
+                        </div>
+                        <p class="text-3xl font-bold">${value}</p>
+                    </div>
+                `;
         }
 
-        // Initialize dashboard data
-        document.addEventListener('DOMContentLoaded', () => updateDashboard());
+        // Функция для создания элемента recent activity
+        function createActivityItem(description, time) {
+            return `
+                    <li class="py-4">
+                        <div class="flex justify-between">
+                            <p>${description}</p>
+                            <span class="text-sm text-gray-500">${time}</span>
+                        </div>
+                    </li>
+                `;
+        }
 
-        // Listen for cache updates and refresh dashboard
-        window.addEventListener('dataCache:updated', () => updateDashboard(true));
+        // Загрузка и отображение данных
+        async function loadDashboard() {
+            try {
+                const data = await window.dataCache.fetchAllData(true); // Force refresh для актуальных данных
+                const dashboard = data.dashboard || {}; // Предполагаем, что dashboard вычислен в dataCache
+
+                // Dashboard metrics (основываясь на схеме и dataCache._computeDashboard)
+                const cards = [
+                    createDashboardCard('Активные сотрудники', dashboard.activeEmployees || data.employees.filter(e => e.workStatus === 'active').length, 'users', 'blue'),
+                    createDashboardCard('Общая зарплата', `${dashboard.totalSalary || 0} руб.`, 'dollar-sign', 'green'),
+                    createDashboardCard('Отработанные часы', dashboard.totalHours || 0, 'clock', 'purple'),
+                    createDashboardCard('Заявки соискателей', dashboard.pendingApplicants || data.applicants.filter(a => a.workStatus === 'pending').length, 'file-text', 'yellow')
+                ];
+
+                document.getElementById('dashboard-grid').innerHTML = cards.join('');
+
+                // Recent activity (пример на основе timeRecords, penalties, bonuses)
+                const recentItems = [];
+                data.timeRecords.slice(-3).forEach(rec => {
+                    recentItems.push(createActivityItem(`Запись времени для сотрудника ${rec.employeeId}`, rec.date));
+                });
+                data.penalties.slice(-2).forEach(pen => {
+                    recentItems.push(createActivityItem(`Штраф для сотрудника ${pen.employeeId}: ${pen.reason}`, pen.date));
+                });
+                data.bonuses.slice(-2).forEach(bon => {
+                    recentItems.push(createActivityItem(`Бонус для сотрудника ${bon.employeeId}: ${bon.note}`, bon.date));
+                });
+
+                // Сортировка по дате (предполагаем формат ISO)
+                recentItems.sort((a, b) => new Date(b.match(/(\d{4}-\d{2}-\d{2})/)[0]) - new Date(a.match(/(\d{4}-\d{2}-\d{2})/)[0]));
+                document.getElementById('recent-activity-list').innerHTML = recentItems.slice(0, 5).join('');
+
+                window.notifications.showSuccess('Данные панели управления обновлены');
+            } catch (error) {
+                window.notifications.showError(error);
+            }
+        }
+
+        // Загрузка при готовности DOM
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+
+        // Слушатель на обновление dataCache для автоматического рефреша
+        window.addEventListener('dataCache:updated', loadDashboard);
     </script>
 </body>
 </html>

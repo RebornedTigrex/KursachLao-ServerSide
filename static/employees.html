@@ -1,335 +1,514 @@
-﻿<!-- employees.html - Обновлено для использования fetchAllData, стандартизации поля 'note' для бонусов, добавления валидации, исправления несоответствий и выноса уведомлений в отдельный модуль. Переведено на русский язык. -->
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <link rel="icon" href="/favicon" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR Harmony Hub | Сотрудники</title>
-    <link rel="stylesheet" href="style">
-    <script src="/thirdParty/3.4.17"></script>
-    <script src="/thirdParty/feather.min"></script>
+    <title>HR Harmony Hub - Сотрудники</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico">
+    <script src="thirdParty/feather.min.js"></script>
+    <script src="thirdParty/3.4.17.js"></script> <!-- Tailwind CDN -->
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
     <custom-navbar></custom-navbar>
-    <main class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-2xl font-bold text-gray-800">Управление сотрудниками</h1>
-            <button id="add-employee-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
-                <i data-feather="plus" class="mr-2 w-4 h-4"></i>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-4 right-4 z-50"></div>
+
+    <!-- Main Content -->
+    <main class="flex-1 container mx-auto px-4 py-8 max-w-7xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">Управление сотрудниками</h1>
+            <button id="add-employee-btn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center gap-2">
+                <i data-feather="user-plus" class="w-5 h-5"></i>
                 Добавить сотрудника
             </button>
         </div>
 
-        <!-- Фильтры по статусу -->
-        <div class="flex space-x-2 mb-6 overflow-x-auto pb-2">
-            <a href="?status=all" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-gray-200 hover:bg-gray-300">Все</a>
-            <a href="?status=hired" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-green-100 hover:bg-green-200 text-green-800">Нанятые</a>
-            <a href="?status=fired" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-red-100 hover:bg-red-200 text-red-800">Уволенные</a>
-            <a href="?status=interview" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-blue-100 hover:bg-blue-200 text-blue-800">Собеседования</a>
+        <!-- Filter Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-10">
+            <h2 class="text-xl font-semibold mb-5 flex items-center gap-2">
+                <i data-feather="filter" class="w-6 h-6 text-blue-600"></i>
+                Фильтры
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                <input id="fio-filter" type="text" placeholder="Поиск по ФИО" class="border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500">
+                <select id="status-filter" class="border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500">
+                    <option value="">Все статусы</option>
+                    <option value="active">В штате</option>
+                    <option value="fired">Уволен</option>
+                    <option value="on_vacation">В отпуске</option>
+                    <option value="sick">На больничном</option>
+                </select>
+                <div class="relative">
+                    <button id="more-filters-btn" class="w-full border-gray-300 rounded-lg p-3 text-left flex justify-between items-center focus:ring-2 focus:ring-blue-500">
+                        Дополнительные фильтры
+                        <i data-feather="chevron-down" class="w-5 h-5"></i>
+                    </button>
+                    <div id="more-filters-dropdown" class="absolute z-10 mt-2 w-full bg-white rounded-lg shadow-lg p-4 hidden">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Должность</label>
+                            <select id="post-filter" class="w-full border-gray-300 rounded-lg p-2">
+                                <option value="">Все должности</option>
+                                <!-- Заполняется динамически -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Диапазон зарплаты</label>
+                            <div class="px-4">
+                                <div id="salary-slider" class="relative h-2 bg-gray-200 rounded-full">
+                                    <div id="salary-range" class="absolute h-2 bg-blue-500 rounded-full"></div>
+                                    <input id="salary-min" type="range" class="absolute w-full opacity-0 cursor-pointer">
+                                    <input id="salary-max" type="range" class="absolute w-full opacity-0 cursor-pointer">
+                                </div>
+                                <div class="flex justify-between mt-2 text-sm text-gray-600">
+                                    <span id="salary-min-label">0 ₽</span>
+                                    <span id="salary-max-label">0 ₽</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button id="apply-filters" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">Применить</button>
+                <button id="reset-filters" class="ml-4 text-gray-600 hover:text-gray-800">Сбросить</button>
+            </div>
         </div>
 
         <!-- Таблица сотрудников -->
-        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-semibold">Список сотрудников</h2>
+            </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Зарплата</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Штрафы</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Бонусы</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">З/п (согласованная)</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                         </tr>
                     </thead>
-                    <tbody id="employees-table-body" class="bg-white divide-y divide-gray-200">
-                        <!-- Заполняется JavaScript -->
+                    <tbody id="employees-tbody" class="divide-y divide-gray-200 bg-white">
+                        <!-- Заполняется JS -->
                     </tbody>
                 </table>
             </div>
         </div>
-
-        <!-- Модальное окно добавления сотрудника -->
-        <div id="add-employee-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Добавить нового сотрудника</h2>
-                    <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
-                        <i data-feather="x"></i>
-                    </button>
-                </div>
-
-                <form id="add-employee-form" class="space-y-4">
-                    <div>
-                        <label for="fullname" class="block text-sm font-medium text-gray-700 mb-1">Полное имя</label>
-                        <input type="text" id="fullname" name="fullname" required minlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-
-                    <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
-                        <select id="status" name="status" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="hired">Нанят</option>
-                            <option value="fired">Уволен</option>
-                            <option value="interview">Собеседование</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="salary" class="block text-sm font-medium text-gray-700 mb-1">Зарплата</label>
-                        <input type="number" id="salary" name="salary" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-
-                    <div class="flex justify-end space-x-3 pt-4">
-                        <button type="button" id="cancel-add-btn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Отмена</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Добавить сотрудника</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Модальное окно штрафа -->
-        <div id="penalty-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Добавить штраф</h2>
-                    <button id="close-penalty-modal" class="text-gray-500 hover:text-gray-700">
-                        <i data-feather="x"></i>
-                    </button>
-                </div>
-                <form id="add-penalty-form" class="space-y-4">
-                    <input type="hidden" id="penalty-employee-id">
-                    <div>
-                        <label for="penalty-reason" class="block text-sm font-medium text-gray-700 mb-1">Причина</label>
-                        <input type="text" id="penalty-reason" required minlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    <div>
-                        <label for="penalty-amount" class="block text-sm font-medium text-gray-700 mb-1">Сумма</label>
-                        <input type="number" id="penalty-amount" required min="0.01" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" id="cancel-penalty-btn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Отмена</button>
-                        <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Добавить штраф</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Модальное окно бонуса -->
-        <div id="bonus-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Добавить бонус</h2>
-                    <button id="close-bonus-modal" class="text-gray-500 hover:text-gray-700">
-                        <i data-feather="x"></i>
-                    </button>
-                </div>
-                <form id="add-bonus-form" class="space-y-4">
-                    <input type="hidden" id="bonus-employee-id">
-                    <div>
-                        <label for="bonus-note" class="block text-sm font-medium text-gray-700 mb-1">Примечание</label>
-                        <input type="text" id="bonus-note" required minlength="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    <div>
-                        <label for="bonus-amount" class="block text-sm font-medium text-gray-700 mb-1">Сумма</label>
-                        <input type="number" id="bonus-amount" required min="0.01" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" id="cancel-bonus-btn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Отмена</button>
-                        <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">Добавить бонус</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Контейнер для уведомлений (используется модулем notifications.js) -->
-        <div id="notification-container" class="fixed top-4 right-4 z-50"></div>
     </main>
 
+    <!-- Footer -->
     <custom-footer></custom-footer>
 
-    <!-- Компоненты -->
-    <script src="components/navbar"></script>
-    <script src="components/footer"></script>
+    <!-- Модальное окно добавления -->
+    <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold">Добавление сотрудника</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <form id="add-employee-form" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Имя *</label>
+                    <input type="text" name="firstName" required class="w-full border-gray-300 rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Фамилия *</label>
+                    <input type="text" name="lastName" required class="w-full border-gray-300 rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Отчество</label>
+                    <input type="text" name="patronymic" class="w-full border-gray-300 rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+                    <input type="tel" name="phoneNumber" required class="w-full border-gray-300 rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Статус *</label>
+                    <select name="workStatus" required class="w-full border-gray-300 rounded-lg p-3">
+                        <option value="active">В штате</option>
+                        <option value="fired">Уволен</option>
+                        <option value="on_vacation">В отпуске</option>
+                        <option value="sick">На больничном</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Должность *</label>
+                    <select name="postId" required class="w-full border-gray-300 rounded-lg p-3">
+                        <!-- Заполняется динамически -->
+                    </select>
+                </div>
+                <div class="col-span-full flex justify-end gap-4 mt-6">
+                    <button type="button" class="cancel-btn px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                        Отмена
+                    </button>
+                    <button type="submit" class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
+                        Добавить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    <!-- Модули -->
-    <script src="modules/dataCache"></script>
-    <script src="modules/notifications"></script>
+    <!-- Модальное окно редактирования -->
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold">Редактирование сотрудника</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <form id="edit-employee-form" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <input type="hidden" name="id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Имя *</label>
+                    <input type="text" name="firstName" required class="w-full border-gray-300 rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Фамилия *</label>
+                    <input type="text" name="lastName" required class="w-full border-gray-300 rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Отчество</label>
+                    <input type="text" name="patronymic" class="w-full border-gray-300 rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+                    <input type="tel" name="phoneNumber" required class="w-full border-gray-300 rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Статус *</label>
+                    <select name="workStatus" required class="w-full border-gray-300 rounded-lg p-3">
+                        <option value="active">В штате</option>
+                        <option value="fired">Уволен</option>
+                        <option value="on_vacation">В отпуске</option>
+                        <option value="sick">На больничном</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Должность *</label>
+                    <select name="postId" required class="w-full border-gray-300 rounded-lg p-3">
+                        <!-- Заполняется динамически -->
+                    </select>
+                </div>
+                <div class="col-span-full flex justify-end gap-4 mt-6">
+                    <button type="button" class="cancel-btn px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                        Отмена
+                    </button>
+                    <button type="submit" class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
+    <!-- Модальное окно подтверждения удаления -->
+    <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">Подтверждение удаления</h3>
+            <p class="mb-6">Вы уверены, что хотите удалить этого сотрудника? Это действие нельзя отменить.</p>
+            <div class="flex justify-end gap-4">
+                <button class="cancel-btn px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                    Отмена
+                </button>
+                <button id="confirm-delete" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">
+                    Удалить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="modules/dataCache.js"></script>
+    <script src="modules/notifications.js"></script>
+    <script src="modules/serverSync.js"></script>
+    <script src="components/navbar.js"></script>
+    <script src="components/footer.js"></script>
     <script>
         feather.replace();
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const statusFilter = urlParams.get('status') || 'all';
+        // Модалки
+        const modals = {
+            add: document.getElementById('add-modal'),
+            edit: document.getElementById('edit-modal'),
+            delete: document.getElementById('delete-modal')
+        };
 
-            // Highlight active filter
-            document.querySelectorAll(`a[href="?status=${statusFilter}"]`).forEach(el => {
-                el.classList.remove('bg-gray-200', 'bg-green-100', 'bg-red-100', 'bg-blue-100');
-                el.classList.add('bg-blue-500', 'text-white');
+        // Закрытие модалок
+        document.querySelectorAll('.close-modal, .cancel-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                Object.values(modals).forEach(m => m.classList.add('hidden'));
             });
+        });
 
-            let employeesLoadingPromise = null;
+        Object.values(modals).forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target === modal) modal.classList.add('hidden');
+            });
+        });
 
-            async function reloadEmployeeTable(force = false) {
-                if (employeesLoadingPromise) return employeesLoadingPromise;
+        // Данные
+        let allEmployees = [];
+        let allPosts = [];
+        let allSalaries = [];
+        let minSalary = 0;
+        let maxSalary = 0;
 
-                employeesLoadingPromise = (async () => {
-                    try {
-                        const { employees } = await window.dataCache.fetchAllData(force);
-                        const tbody = document.getElementById('employees-table-body');
-                        tbody.innerHTML = '';
+        async function loadData() {
+            try {
+                const data = await window.dataCache.fetchAllData(true);
+                allEmployees = data.employees;
+                allPosts = data.posts;
+                allSalaries = data.salaries;
 
-                        employees
-                            .filter(emp => statusFilter === 'all' || emp.status === statusFilter)
-                            .forEach(emp => {
-                                const row = document.createElement('tr');
-                                row.className = 'hover:bg-gray-50';
+                // Мин/макс ЗП
+                const salaries = allSalaries.map(s => s.agreeSalary || 0);
+                minSalary = Math.min(...salaries) || 0;
+                maxSalary = Math.max(...salaries) || 100000;
 
-                            const statusBadge = {
-                                hired: '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Нанят</span>',
-                                fired: '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Уволен</span>',
-                                interview: '<span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Собеседование</span>'
-                            }[emp.status] || '';
+                // Инициализация слайдера
+                initSalarySlider();
 
-                            
-                            
-                            row.innerHTML = `
-                                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${emp.fullname}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">${emp.salary.toLocaleString()} ₽</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span>${emp.penalties || 0}</span>
-                                    <button data-employee-id="${emp.id}" class="ml-2 text-red-500 hover:text-red-700 add-penalty">
-                                        <i data-feather="minus-circle" class="w-4 h-4"></i>
-                                    </button>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span>${emp.bonuses || 0}</span>
-                                    <button data-employee-id="${emp.id}" class="ml-2 text-green-500 hover:text-green-700 add-bonus">
-                                        <i data-feather="plus-circle" class="w-4 h-4"></i>
-                                    </button>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <!-- Здесь в будущем можно добавить кнопки изменения статуса / удаления -->
-                                </td>
-                            `;
-                            tbody.appendChild(row);
-                        });
+                // Заполнение селектов должностей
+                const postOptions = allPosts.map(p => `<option value="${p.id}">${p.postName}</option>`).join('');
+                document.querySelector('#add-employee-form select[name="postId"]').innerHTML = postOptions;
+                document.querySelector('#edit-employee-form select[name="postId"]').innerHTML = postOptions;
+                document.querySelector('#post-filter').innerHTML = '<option value="">Все должности</option>' + postOptions;
 
-                        feather.replace();
-                    } finally {
-                        employeesLoadingPromise = null;
-                    }
-                })();
-                return employeesLoadingPromise;
+                renderEmployees(allEmployees);
+
+                window.notifications.showSuccess('Данные загружены');
+            } catch (err) {
+                window.notifications.showError(err);
+            }
+        }
+
+        function renderEmployees(employees) {
+            const tbody = document.getElementById('employees-tbody');
+            tbody.innerHTML = employees.map(emp => {
+                const post = allPosts.find(p => p.id === emp.postId);
+                const salary = allSalaries.find(s => s.employeeId === emp.id);
+                const fullName = [emp.firstName, emp.lastName, emp.patronymic].filter(Boolean).join(' ');
+
+                return `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm text-gray-500">${emp.id}</td>
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900">${fullName}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">${post?.postName || '—'}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">${salary?.agreeSalary || '—'} ₽</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">${emp.phoneNumber}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(emp.workStatus)}">
+                                    ${getStatusText(emp.workStatus)}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-medium">
+                                <button class="edit-btn text-blue-600 hover:text-blue-800 mr-3" data-id="${emp.id}">
+                                    <i data-feather="edit-2" class="w-5 h-5"></i>
+                                </button>
+                                <button class="delete-btn text-red-600 hover:text-red-800" data-id="${emp.id}">
+                                    <i data-feather="trash-2" class="w-5 h-5"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+            }).join('');
+            feather.replace();
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                active: 'bg-green-100 text-green-800',
+                fired: 'bg-red-100 text-red-800',
+                on_vacation: 'bg-blue-100 text-blue-800',
+                sick: 'bg-yellow-100 text-yellow-800'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                active: 'В штате',
+                fired: 'Уволен',
+                on_vacation: 'В отпуске',
+                sick: 'На больничном'
+            };
+            return texts[status] || status;
+        }
+
+        // Дропдаун дополнительных фильтров
+        const moreFiltersBtn = document.getElementById('more-filters-btn');
+        const moreFiltersDropdown = document.getElementById('more-filters-dropdown');
+        moreFiltersBtn.addEventListener('click', () => {
+            moreFiltersDropdown.classList.toggle('hidden');
+        });
+
+        // Инициализация слайдера ЗП
+        function initSalarySlider() {
+            const minInput = document.getElementById('salary-min');
+            const maxInput = document.getElementById('salary-max');
+            const range = document.getElementById('salary-range');
+            const minLabel = document.getElementById('salary-min-label');
+            const maxLabel = document.getElementById('salary-max-label');
+
+            minInput.min = minSalary;
+            minInput.max = maxSalary;
+            minInput.value = minSalary;
+            maxInput.min = minSalary;
+            maxInput.max = maxSalary;
+            maxInput.value = maxSalary;
+
+            function updateSlider() {
+                const minVal = parseInt(minInput.value);
+                const maxVal = parseInt(maxInput.value);
+
+                if (minVal > maxVal) {
+                    minInput.value = maxVal;
+                    maxInput.value = minVal;
+                }
+
+                const minPercent = ((minInput.value - minSalary) / (maxSalary - minSalary)) * 100;
+                const maxPercent = ((maxInput.value - minSalary) / (maxSalary - minSalary)) * 100;
+
+                range.style.left = `${Math.min(minPercent, maxPercent)}%`;
+                range.style.width = `${Math.abs(maxPercent - minPercent)}%`;
+
+                minLabel.textContent = `${minInput.value} ₽`;
+                maxLabel.textContent = `${maxInput.value} ₽`;
             }
 
-            // Обработка модального окна добавления сотрудника
-            const modal = document.getElementById('add-employee-modal');
-            const form = document.getElementById('add-employee-form');
+            minInput.addEventListener('input', updateSlider);
+            maxInput.addEventListener('input', updateSlider);
+            updateSlider();
+        }
 
-            document.getElementById('add-employee-btn').addEventListener('click', () => modal.classList.remove('hidden'));
-            document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.add('hidden'));
-            document.getElementById('cancel-add-btn').addEventListener('click', () => modal.classList.add('hidden'));
+        // Фильтрация
+        function applyFilters() {
+            const fioQuery = document.getElementById('fio-filter').value.toLowerCase();
+            const status = document.getElementById('status-filter').value;
+            const postId = document.getElementById('post-filter').value;
+            const minSal = parseInt(document.getElementById('salary-min').value);
+            const maxSal = parseInt(document.getElementById('salary-max').value);
 
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!form.checkValidity()) return;
+            const filtered = allEmployees.filter(emp => {
+                const fullName = [emp.firstName, emp.lastName, emp.patronymic].join(' ').toLowerCase();
+                const salary = allSalaries.find(s => s.employeeId === emp.id)?.agreeSalary || 0;
 
-                const formData = {
-                    fullname: document.getElementById('fullname').value.trim(),
-                    status: document.getElementById('status').value,
-                    salary: parseFloat(document.getElementById('salary').value)
-                };
-
-                const submitBtn = form.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Добавление...';
-
-                try {
-                    await window.dataCache.addEmployee(formData);
-                    form.reset();
-                    modal.classList.add('hidden');
-                    window.notifications.showSuccess('Сотрудник успешно добавлен!');
-                    reloadEmployeeTable(true);
-                } catch (error) {
-                    window.notifications.showError(error);
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Добавить сотрудника';
-                }
+                return (
+                    (fioQuery ? fullName.includes(fioQuery) : true) &&
+                    (status ? emp.workStatus === status : true) &&
+                    (postId ? emp.postId == postId : true) &&
+                    (salary >= minSal && salary <= maxSal)
+                );
             });
 
-            // Обработка штрафов и бонусов
-            document.addEventListener('click', async (e) => {
-                const penaltyBtn = e.target.closest('.add-penalty');
-                const bonusBtn = e.target.closest('.add-bonus');
+            renderEmployees(filtered);
+        }
 
-                if (penaltyBtn) {
-                    const employeeId = penaltyBtn.dataset.employeeId;
-                    document.getElementById('penalty-employee-id').value = employeeId;
-                    document.getElementById('penalty-modal').classList.remove('hidden');
-                }
-
-                if (bonusBtn) {
-                    const employeeId = bonusBtn.dataset.employeeId;
-                    document.getElementById('bonus-employee-id').value = employeeId;
-                    document.getElementById('bonus-modal').classList.remove('hidden');
-                }
-            });
-
-            // Закрытие модальных окон штрафов/бонусов
-            document.getElementById('close-penalty-modal').addEventListener('click', () => document.getElementById('penalty-modal').classList.add('hidden'));
-            document.getElementById('close-bonus-modal').addEventListener('click', () => document.getElementById('bonus-modal').classList.add('hidden'));
-
-            // Форма штрафа
-            document.getElementById('add-penalty-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!e.target.checkValidity()) return;
-
-                const employeeId = parseInt(document.getElementById('penalty-employee-id').value);
-                const penaltyData = {
-                    reason: document.getElementById('penalty-reason').value,
-                    amount: parseFloat(document.getElementById('penalty-amount').value)
-                };
-
-                try {
-                    await window.dataCache.addPenalty(employeeId, penaltyData);
-                    document.getElementById('penalty-modal').classList.add('hidden');
-                    window.notifications.showSuccess('Штраф успешно добавлен!');
-                    setTimeout(() => reloadEmployeeTable(true), 1000);
-                } catch (error) {
-                    window.notifications.showError(error);
-                }
-            });
-
-            // Форма бонуса
-            document.getElementById('add-bonus-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!e.target.checkValidity()) return;
-
-                const employeeId = parseInt(document.getElementById('bonus-employee-id').value);
-                const bonusData = {
-                    note: document.getElementById('bonus-note').value,
-                    amount: parseFloat(document.getElementById('bonus-amount').value)
-                };
-
-                try {
-                    await window.dataCache.addBonus(employeeId, bonusData);
-                    document.getElementById('bonus-modal').classList.add('hidden');
-                    window.notifications.showSuccess('Бонус успешно добавлен!');
-                    setTimeout(() => reloadEmployeeTable(true), 1000);
-                } catch (error) {
-                    window.notifications.showError(error);
-                }
-            });
-
-            // Обновление при изменении кэша
-            window.addEventListener('dataCache:updated', () => reloadEmployeeTable(true));
-
-            // Первоначальная загрузка
-            reloadEmployeeTable();
+        document.getElementById('apply-filters').addEventListener('click', applyFilters);
+        document.getElementById('reset-filters').addEventListener('click', () => {
+            document.getElementById('fio-filter').value = '';
+            document.getElementById('status-filter').value = '';
+            document.getElementById('post-filter').value = '';
+            document.getElementById('salary-min').value = minSalary;
+            document.getElementById('salary-max').value = maxSalary;
+            moreFiltersDropdown.classList.add('hidden');
+            applyFilters();
         });
+
+        // Добавление
+        document.getElementById('add-employee-btn').addEventListener('click', () => {
+            document.getElementById('add-employee-form').reset();
+            modals.add.classList.remove('hidden');
+        });
+
+        document.getElementById('add-employee-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            try {
+                await window.dataCache.addEmployee(data);
+            } catch (err) {
+                window.notifications.showError(err);
+            } finally {
+                modals.add.classList.add('hidden');
+                await loadData();
+            }
+        });
+
+        // Редактирование
+        document.addEventListener('click', async e => {
+            if (e.target.closest('.edit-btn')) {
+                const id = e.target.closest('.edit-btn').dataset.id;
+                try {
+                    const employee = allEmployees.find(e => e.id == id);
+                    if (!employee) throw new Error('Employee not found');
+
+                    const form = document.getElementById('edit-employee-form');
+                    form.elements.id.value = employee.id;
+                    form.elements.firstName.value = employee.firstName;
+                    form.elements.lastName.value = employee.lastName;
+                    form.elements.patronymic.value = employee.patronymic || '';
+                    form.elements.phoneNumber.value = employee.phoneNumber;
+                    form.elements.workStatus.value = employee.workStatus;
+                    form.elements.postId.value = employee.postId;
+
+                    modals.edit.classList.remove('hidden');
+                } catch (err) {
+                    window.notifications.showError(err);
+                }
+            }
+        });
+
+        document.getElementById('edit-employee-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            const id = data.id;
+            try {
+                await window.dataCache.updateEmployee(id, data);
+            } catch (err) {
+                window.notifications.showError(err);
+            } finally {
+                modals.edit.classList.add('hidden');
+                await loadData();
+            }
+        });
+
+        // Удаление
+        let deleteId = null;
+        document.addEventListener('click', e => {
+            if (e.target.closest('.delete-btn')) {
+                deleteId = e.target.closest('.delete-btn').dataset.id;
+                modals.delete.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('confirm-delete').addEventListener('click', async () => {
+            if (deleteId) {
+                try {
+                    await window.dataCache.deleteEmployee(deleteId);
+                } catch (err) {
+                    window.notifications.showError(err);
+                } finally {
+                    modals.delete.classList.add('hidden');
+                    await loadData();
+                    deleteId = null;
+                }
+            }
+        });
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', loadData);
+        window.addEventListener('dataCache:updated', loadData);
     </script>
 </body>
 </html>
