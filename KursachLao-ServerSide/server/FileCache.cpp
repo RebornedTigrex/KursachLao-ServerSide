@@ -150,9 +150,12 @@ std::string FileCache::normalize_route(const fs::path& file_path) const {
         // Если не можем получить относительный путь, используем полный
         return "/invalid_path";
     }
+    std::string filename;
     std::string route = "/";
+
     if (fileCacheMode == 0) {
         route += relative_path.string();
+        filename = relative_path.string();
     }
     else if (fileCacheMode == 1) {
         // Добавляем родительские директории
@@ -160,21 +163,22 @@ std::string FileCache::normalize_route(const fs::path& file_path) const {
             route += relative_path.parent_path().string() + "/";
         }
         // Добавляем имя файла без расширения
-        std::string stem = relative_path.stem().string();
-        if (!stem.empty()) {
-            route += stem;
+        filename = relative_path.stem().string();
+        if (!filename.empty()) {
+            route += filename;
         }
-        // Специальная обработка для index файлов
-        std::string filename_lower = stem;
-        std::transform(filename_lower.begin(), filename_lower.end(), filename_lower.begin(), ::tolower);
-        if (filename_lower == "index") {
-            // Если это index в корне - возвращаем "/"
-            if (!relative_path.has_parent_path() || relative_path.parent_path() == ".") {
-                return "/";
-            }
-            // Если index в поддиректории - возвращаем путь до директории
-            return "/" + relative_path.parent_path().string() + "/";
+        
+    }
+    std::string filename_lower = filename;
+    // Специальная обработка для index файлов
+    std::transform(filename_lower.begin(), filename_lower.end(), filename_lower.begin(), ::tolower);
+    if (filename_lower == "index" or filename_lower == "index.html") {
+        // Если это index в корне - возвращаем "/"
+        if (!relative_path.has_parent_path() || relative_path.parent_path() == ".") {
+            return "/";
         }
+        // Если index в поддиректории - возвращаем путь до директории
+        return "/" + relative_path.parent_path().string() + "/";
     }
 
     // Заменяем обратные слеши на прямые (для Windows)
